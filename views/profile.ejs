@@ -1,0 +1,109 @@
+<h1>Профиль</h1>
+
+<% if (error) { %>
+    <div class="alert alert-error"><%= error %></div>
+<% } %>
+
+<div class="grid grid-2">
+    <div class="card">
+        <h2>Личная информация</h2>
+        <div style="text-align: center; margin-bottom: 1rem;">
+            <img src="<%= user.avatar %>" alt="Avatar" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">
+        </div>
+        <p><strong>Имя:</strong> <%= user.full_name %></p>
+        <p><strong>Email:</strong> <%= user.email %></p>
+        <p><strong>Роль:</strong> <%= user.role === 'student' ? 'Студент' : 'Абитуриент' %></p>
+    </div>
+
+    <% if (user.role === 'student') { %>
+        <div class="card">
+            <h2>Информация об учебе</h2>
+            <form action="/profile" method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label class="form-label">Фото профиля</label>
+                    <input type="file" name="avatar" class="form-input" accept="image/*">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Вуз</label>
+                    <select name="university_id" class="form-input" id="universitySelect">
+                        <option value="">Выберите вуз</option>
+                        <% universities.forEach(uni => { %>
+                            <option value="<%= uni.id %>" <%= studentProfile && studentProfile.university_id === uni.id ? 'selected' : '' %>>
+                                <%= uni.name %>
+                            </option>
+                        <% }); %>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Факультет</label>
+                    <select name="faculty_id" class="form-input" id="facultySelect">
+                        <option value="">Выберите факультет</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Курс (если учитесь сейчас)</label>
+                    <select name="course" class="form-input">
+                        <option value="">Не учусь</option>
+                        <% for (let i = 1; i <= 6; i++) { %>
+                            <option value="<%= i %>" <%= studentProfile && studentProfile.course === i ? 'selected' : '' %>>
+                                <%= i %> курс
+                            </option>
+                        <% } %>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Год выпуска (если закончили)</label>
+                    <input type="number" name="graduation_year" class="form-input" 
+                           value="<%= studentProfile ? studentProfile.graduation_year || '' : '' %>"
+                           min="2000" max="2030">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">О себе</label>
+                    <textarea name="bio" class="form-input" rows="4" placeholder="Расскажите о себе, своем опыте..."><%= studentProfile ? studentProfile.bio || '' : '' %></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </form>
+        </div>
+    <% } %>
+</div>
+
+<% if (user.role === 'student') { %>
+<script>
+    // Загрузка факультетов при выборе вуза
+    document.getElementById('universitySelect')?.addEventListener('change', async function() {
+        const universityId = this.value;
+        const facultySelect = document.getElementById('facultySelect');
+        facultySelect.innerHTML = '<option value="">Загрузка...</option>';
+        
+        if (universityId) {
+            const response = await fetch(`/api/faculties/${universityId}`);
+            const faculties = await response.json();
+            facultySelect.innerHTML = '<option value="">Выберите факультет</option>';
+            faculties.forEach(faculty => {
+                const option = document.createElement('option');
+                option.value = faculty.id;
+                option.textContent = faculty.name;
+                <% if (studentProfile) { %>
+                    if (faculty.id === <%= studentProfile.faculty_id || 0 %>) {
+                        option.selected = true;
+                    }
+                <% } %>
+                facultySelect.appendChild(option);
+            });
+        } else {
+            facultySelect.innerHTML = '<option value="">Выберите факультет</option>';
+        }
+    });
+
+    // Загружаем факультеты при загрузке страницы, если выбран вуз
+    <% if (studentProfile && studentProfile.university_id) { %>
+        document.getElementById('universitySelect')?.dispatchEvent(new Event('change'));
+    <% } %>
+</script>
+<% } %>

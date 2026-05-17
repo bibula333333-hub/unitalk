@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniTalk - Общение с студентами</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">🎓 UniTalk</a>
+            <div class="nav-links">
+                <a href="/universities" class="nav-link">Вузы</a>
+                <% if (locals.user) { %>
+                    <a href="/chats" class="nav-link">Чаты</a>
+                    <a href="/profile" class="nav-link">Профиль</a>
+                    <% if (user.role === 'admin') { %>
+                        <a href="/admin" class="nav-link">Админ</a>
+                    <% } %>
+                    <a href="/logout" class="nav-link">Выйти</a>
+                <% } else { %>
+                    <a href="/login" class="nav-link">Войти</a>
+                    <a href="/register" class="btn btn-primary">Регистрация</a>
+                <% } %>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <%- body %>
+    </main>
+
+    <script src="/js/main.js"></script>
+</body>
+</html>

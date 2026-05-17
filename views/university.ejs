@@ -1,0 +1,101 @@
+<h1><%= university.name %></h1>
+<% if (university.city) { %>
+    <p style="color: var(--text-secondary); font-size: 1.25rem;">📍 <%= university.city %></p>
+<% } %>
+<% if (university.description) { %>
+    <p style="margin-top: 1rem;"><%= university.description %></p>
+<% } %>
+
+<div class="mt-2">
+    <h2>Факультеты</h2>
+    <% if (faculties.length > 0) { %>
+        <div class="grid grid-2">
+            <% faculties.forEach(faculty => { %>
+                <div class="card">
+                    <h3><%= faculty.name %></h3>
+                    <% if (faculty.description) { %>
+                        <p style="color: var(--text-secondary);"><%= faculty.description %></p>
+                    <% } %>
+                </div>
+            <% }); %>
+        </div>
+    <% } else { %>
+        <p>Факультеты пока не добавлены</p>
+    <% } %>
+</div>
+
+<div class="mt-2">
+    <h2>Отзывы</h2>
+    
+    <% if (locals.user) { %>
+        <div class="card">
+            <h3>Оставить отзыв</h3>
+            <form action="/universities/<%= university.id %>/review" method="POST">
+                <div class="form-group">
+                    <label class="form-label">Факультет (необязательно)</label>
+                    <select name="faculty_id" class="form-input">
+                        <option value="">Весь вуз</option>
+                        <% faculties.forEach(faculty => { %>
+                            <option value="<%= faculty.id %>"><%= faculty.name %></option>
+                        <% }); %>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Оценка</label>
+                    <select name="rating" class="form-input" required>
+                        <option value="5">5 ★★★★★</option>
+                        <option value="4">4 ★★★★</option>
+                        <option value="3">3 ★★★</option>
+                        <option value="2">2 ★★</option>
+                        <option value="1">1 ★</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Текст отзыва</label>
+                    <textarea name="content" class="form-input" rows="4" required placeholder="Поделитесь своим мнением..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="is_anonymous" value="1">
+                        Анонимный отзыв
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Отправить</button>
+            </form>
+        </div>
+    <% } else { %>
+        <p><a href="/login">Войдите</a>, чтобы оставить отзыв</p>
+    <% } %>
+
+    <% if (reviews.length > 0) { %>
+        <% reviews.forEach(review => { %>
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <img src="<%= review.avatar %>" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%;">
+                        <div>
+                            <strong><%= review.display_name %></strong>
+                            <% if (review.faculty_name) { %>
+                                <span style="color: var(--text-secondary);">• <%= review.faculty_name %></span>
+                            <% } %>
+                            <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                                <%= new Date(review.created_at).toLocaleDateString('ru-RU') %>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stars">
+                        <% for (let i = 0; i < review.rating; i++) { %>★<% } %>
+                        <% for (let i = review.rating; i < 5; i++) { %>☆<% } %>
+                    </div>
+                </div>
+                <p style="margin-top: 0.75rem;"><%= review.content %></p>
+            </div>
+        <% }); %>
+    <% } else { %>
+        <p>Пока нет отзывов. Будьте первым!</p>
+    <% } %>
+</div>

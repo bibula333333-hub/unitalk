@@ -1,0 +1,74 @@
+<div class="chat-container">
+    <div class="chat-header">
+        <a href="/chats" style="color: var(--text-primary); text-decoration: none;">← Назад к чатам</a>
+        <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
+            <img src="<%= partner.avatar %>" alt="Avatar" style="width: 50px; height: 50px; border-radius: 50%;">
+            <h2><%= partner.full_name %></h2>
+        </div>
+    </div>
+
+    <div class="chat-messages" id="messages">
+        <% messages.forEach(message => { %>
+            <div class="message <%= message.sender_id === user.id ? 'message-own' : '' %>">
+                <div class="message-content">
+                    <div class="message-info">
+                        <%= message.full_name %> • <%= new Date(message.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) %>
+                    </div>
+                    <%= message.content %>
+                </div>
+            </div>
+        <% }); %>
+    </div>
+
+    <form id="messageForm" class="chat-input">
+        <input type="text" id="messageInput" class="form-input" placeholder="Введите сообщение..." required>
+        <button type="submit" class="btn btn-primary">Отправить</button>
+    </form>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const chatId = <%= chat.id %>;
+    const userId = <%= user.id %>;
+    const socket = io();
+
+    // Присоединяемся к комнате чата
+    socket.emit('join_chat', chatId);
+
+    // Прокручиваем сообщения вниз
+    const messagesDiv = document.getElementById('messages');
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    // Отправка сообщения
+    document.getElementById('messageForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const input = document.getElementById('messageInput');
+        const content = input.value.trim();
+        
+        if (content) {
+            socket.emit('send_message', {
+                chatId: chatId,
+                senderId: userId,
+                content: content
+            });
+            input.value = '';
+        }
+    });
+
+    // Получение новых сообщений
+    socket.on('new_message', function(message) {
+        const isOwn = message.sender_id === userId;
+        const messageHTML = `
+            <div class="message ${isOwn ? 'message-own' : ''}">
+                <div class="message-content">
+                    <div class="message-info">
+                        ${message.full_name} • ${new Date(message.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    ${message.content}
+                </div>
+            </div>
+        `;
+        messagesDiv.insertAdjacentHTML('beforeend', messageHTML);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
+</script>

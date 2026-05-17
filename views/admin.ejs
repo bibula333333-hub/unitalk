@@ -1,0 +1,101 @@
+<h1>Админ панель</h1>
+
+<div class="admin-grid">
+    <div class="stat-card">
+        <div class="stat-number"><%= stats.totalUsers %></div>
+        <div class="stat-label">Пользователей</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number"><%= stats.totalUniversities %></div>
+        <div class="stat-label">Вузов</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number"><%= stats.totalReviews %></div>
+        <div class="stat-label">Отзывов</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number"><%= stats.totalChats %></div>
+        <div class="stat-label">Чатов</div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div>
+        <div class="card">
+            <h2>Добавить вуз</h2>
+            <form action="/admin/universities" method="POST">
+                <div class="form-group">
+                    <label class="form-label">Название вуза</label>
+                    <input type="text" name="name" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Город</label>
+                    <input type="text" name="city" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Описание</label>
+                    <textarea name="description" class="form-input" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Добавить</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Управление вузами</h2>
+            <% universities.forEach(university => { %>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">
+                    <span><%= university.name %></span>
+                    <form action="/admin/universities/<%= university.id %>/delete" method="POST" style="display: inline;">
+                        <button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">Удалить</button>
+                    </form>
+                </div>
+            <% }); %>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <h2>Добавить факультет</h2>
+            <form action="/admin/faculties" method="POST">
+                <div class="form-group">
+                    <label class="form-label">Вуз</label>
+                    <select name="university_id" class="form-input" required>
+                        <option value="">Выберите вуз</option>
+                        <% universities.forEach(university => { %>
+                            <option value="<%= university.id %>"><%= university.name %></option>
+                        <% }); %>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Название факультета</label>
+                    <input type="text" name="name" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Описание</label>
+                    <textarea name="description" class="form-input" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Добавить</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Пользователи</h2>
+            <% users.forEach(u => { %>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">
+                    <div>
+                        <strong><%= u.full_name %></strong>
+                        <span style="color: var(--text-secondary); margin-left: 0.5rem;"><%= u.email %></span>
+                    </div>
+                    <form action="/admin/users/<%= u.id %>/role" method="POST" style="display: flex; gap: 0.5rem;">
+                        <select name="role" class="form-input" style="width: auto;">
+                            <option value="applicant" <%= u.role === 'applicant' ? 'selected' : '' %>>Абитуриент</option>
+                            <option value="student" <%= u.role === 'student' ? 'selected' : '' %>>Студент</option>
+                            <option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>Админ</option>
+                        </select>
+                        <button type="submit" class="btn btn-outline" style="padding: 0.5rem;">Сохранить</button>
+                    </form>
+                </div>
+            <% }); %>
+        </div>
+    </div>
+</div>

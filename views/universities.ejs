@@ -1,0 +1,22 @@
+<h1>Список вузов</h1>
+
+<div class="grid grid-2">
+    <% universities.forEach(university => { %>
+        <a href="/universities/<%= university.id %>" class="card" style="text-decoration: none; color: inherit;">
+            <h2><%= university.name %></h2>
+            <% if (university.city) { %>
+                <p style="color: var(--text-secondary);">📍 <%= university.city %></p>
+            <% } %>
+            <div style="margin-top: 1rem;">
+                <span class="stars">
+                    <% const rating = Math.round(university.avg_rating || 0); %>
+                    <% for (let i = 0; i < rating; i++) { %>★<% } %>
+                    <% for (let i = rating; i < 5; i++) { %>☆<% } %>
+                </span>
+                <span style="color: var(--text-secondary); margin-left: 0.5rem;">
+                    <%= university.avg_rating || 'Нет' %> (<%= university.review_count %> отзывов)
+                </span>
+            </div>
+        </a>
+    <% }); %>
+</div>
