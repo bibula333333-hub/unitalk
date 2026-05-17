@@ -189,7 +189,24 @@ app.get('/profile', auth(), (req, res) => {
   const universities = dbAll('SELECT * FROM universities ORDER BY name');
   res.render('profile', { user, studentProfile, universities, error: null });
 });
+// Публичный профиль пользователя
+app.get('/user/:id', auth(), (req, res) => {
+    const profileUser = dbGet('SELECT * FROM users WHERE id = ?', [req.params.id]);
+    if (!profileUser) return res.status(404).send('Пользователь не найден');
 
+    let studentProfile = null;
+    if (profileUser.role === 'student') {
+        studentProfile = dbGet(`
+      SELECT sp.*, u.name as university_name, f.name as faculty_name
+      FROM student_profiles sp
+      LEFT JOIN universities u ON sp.university_id = u.id
+      LEFT JOIN faculties f ON sp.faculty_id = f.id
+      WHERE sp.user_id = ?
+    `, [profileUser.id]);
+    }
+
+    res.render('user-profile', { profileUser, studentProfile });
+});
 app.post('/profile', auth(['student']), upload.single('avatar'), (req, res) => {
   const { university_id, faculty_id, course, graduation_year, bio } = req.body;
   if (req.file) {

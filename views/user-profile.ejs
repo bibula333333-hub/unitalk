@@ -1,0 +1,49 @@
+<div style="max-width: 800px; margin: 0 auto;">
+    <a href="javascript:history.back()" style="color: var(--primary-color); text-decoration: none;">← Назад</a>
+    
+    <div class="card" style="margin-top: 1rem; text-align: center;">
+        <img src="<%= profileUser.avatar %>" alt="Avatar" 
+             style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 1rem;">
+        <h1><%= profileUser.full_name %></h1>
+        <p style="color: var(--text-secondary);">
+            <%= profileUser.role === 'student' ? 'Студент' : 'Абитуриент' %>
+        </p>
+        
+        <% if (profileUser.role === 'student' && studentProfile) { %>
+            <div style="margin-top: 1.5rem; text-align: left;">
+                <% if (studentProfile.university_name) { %>
+                    <p><strong>Вуз:</strong> <%= studentProfile.university_name %></p>
+                <% } %>
+                <% if (studentProfile.faculty_name) { %>
+                    <p><strong>Факультет:</strong> <%= studentProfile.faculty_name %></p>
+                <% } %>
+                <% if (studentProfile.course) { %>
+                    <p><strong>Курс:</strong> <%= studentProfile.course %></p>
+                <% } %>
+                <% if (studentProfile.graduation_year) { %>
+                    <p><strong>Год выпуска:</strong> <%= studentProfile.graduation_year %></p>
+                <% } %>
+                <% if (studentProfile.bio) { %>
+                    <p style="margin-top: 1rem;"><strong>О себе:</strong></p>
+                    <p><%= studentProfile.bio %></p>
+                <% } %>
+            </div>
+        <% } %>
+        
+        <% if (locals.user && locals.user.id !== profileUser.id) { %>
+            <div style="margin-top: 1.5rem;">
+                <a href="/chats/start/<%= profileUser.id %>" class="btn btn-primary">✉️ Написать сообщение</a>
+            </div>
+        <% } %>
+        
+        <% if (locals.user && locals.user.id === profileUser.id) { %>
+            <div style="margin-top: 1.5rem;">
+                <a href="/profile" class="btn btn-outline">✏️ Редактировать профиль</a>
+            </div>
+        <% } %>
+        
+        <p style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-secondary);">
+            На сайте с <%= new Date(profileUser.created_at).toLocaleDateString('ru-RU') %>
+        </p>
+    </div>
+</div>
