@@ -328,7 +328,25 @@ app.post('/admin/users/:id/role', auth(['admin']), (req, res) => {
   dbRun('UPDATE users SET role=? WHERE id=?', [req.body.role, req.params.id]);
   res.redirect('/admin');
 });
+// Удаление отзыва админом
+app.post('/admin/reviews/:id/delete', auth(['admin']), (req, res) => {
+    dbRun('DELETE FROM reviews WHERE id = ?', [req.params.id]);
+    res.redirect('/admin/reviews');
+});
 
+// Страница управления отзывами
+app.get('/admin/reviews', auth(['admin']), (req, res) => {
+    const reviews = dbAll(`
+    SELECT r.*, u.full_name as user_name, un.name as university_name, 
+           f.name as faculty_name
+    FROM reviews r
+    JOIN users u ON r.user_id = u.id
+    JOIN universities un ON r.university_id = un.id
+    LEFT JOIN faculties f ON r.faculty_id = f.id
+    ORDER BY r.created_at DESC
+  `);
+    res.render('admin-reviews', { reviews });
+});
 // Запуск сервера
 async function start() {
   const SQL = await initSqlJs();
