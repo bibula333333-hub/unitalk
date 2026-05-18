@@ -1,3 +1,4 @@
+// v2.0 - nav partials
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
