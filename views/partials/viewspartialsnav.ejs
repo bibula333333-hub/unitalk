@@ -1,0 +1,24 @@
+<nav class="navbar">
+    <div class="nav-container">
+        <a href="/" class="nav-logo">🎓 UniTalk</a>
+        <div class="nav-links">
+            <a href="/news" class="nav-link">📰 Новости</a>
+            <a href="/universities" class="nav-link">🏫 Вузы</a>
+            <a href="/chats" class="nav-link">💬 Чаты</a>
+            <a href="/friends" class="nav-link">👥 Друзья</a>
+            <% if (typeof user !== 'undefined' && user) { %>
+                <% if (user.role === 'admin') { %>
+                    <a href="/admin" class="nav-link">⚙️ Админ</a>
+                <% } %>
+                <a href="/user/<%= user.id %>" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
+                    <img src="<%= user.avatar %>" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color);">
+                    <span><%= user.full_name %></span>
+                </a>
+                <a href="/logout" class="nav-link">🚪 Выйти</a>
+            <% } else { %>
+                <a href="/login" class="nav-link">Войти</a>
+                <a href="/register" class="btn btn-primary">Регистрация</a>
+            <% } %>
+        </div>
+    </div>
+</nav>
