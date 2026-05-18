@@ -1,13 +1,11 @@
 <h1>
 	<%= university.name %>
 </h1>
-<% if (university.city) { %>
-<p style="color: var(--text-secondary); font-size: 1.25rem;">
+<% if (university.city) { %><p style="color: var(--text-secondary); font-size: 1.25rem;">
 	📍 <%= university.city %>
 </p>
 <% } %>
-<% if (university.description) { %>
-<p style="margin-top: 1rem;">
+<% if (university.description) { %><p style="margin-top: 1rem;">
 	<%= university.description %>
 </p>
 <% } %>
@@ -21,22 +19,19 @@
 			<h3>
 				<%= faculty.name %>
 			</h3>
-			<% if (faculty.description) { %>
-			<p style="color: var(--text-secondary);">
+			<% if (faculty.description) { %><p style="color: var(--text-secondary);">
 				<%= faculty.description %>
 			</p>
 			<% } %>
 		</div>
 		<% }); %>
 	</div>
-	<% } else { %>
-	<p>Факультеты пока не добавлены</p>
+	<% } else { %><p>Факультеты пока не добавлены</p>
 	<% } %>
 </div>
 
 <div class="mt-2">
 	<h2>Отзывы</h2>
-
 	<% if (locals.user) { %>
 	<div class="card">
 		<h3>Оставить отзыв</h3>
@@ -46,8 +41,7 @@
 				<label class="form-label">Факультет (необязательно)</label>
 				<select name="faculty_id" class="form-input">
 					<option value="">Весь вуз</option>
-					<% faculties.forEach(faculty => { %>
-					<option value=""
+					<% faculties.forEach(faculty => { %><option value=""
 						<%= faculty.id %>"><%= faculty.name %>
 					</option>
 					<% }); %>
@@ -70,13 +64,12 @@
 			<div class="form-group">
 				<label>
 					<input type="checkbox" name="is_anonymous" value="1"> Анонимный отзыв
-                    </label>
+				</label>
 			</div>
 			<button type="submit" class="btn btn-primary">Отправить</button>
 		</form>
 	</div>
-	<% } else { %>
-	<p>
+	<% } else { %><p>
 		<a href="/login">Войдите</a>, чтобы оставить отзыв
 	</p>
 	<% } %>
@@ -93,8 +86,7 @@
 							<%= review.user_id %>" style="color: inherit; text-decoration: none;"><%= review.display_name %>
 						</a>
 					</strong>
-					<% if (review.faculty_name) { %>
-					<span style="color: var(--text-secondary);">
+					<% if (review.faculty_name) { %><span style="color: var(--text-secondary);">
 						• <%= review.faculty_name %>
 					</span>
 					<% } %>
@@ -106,8 +98,7 @@
 			<div style="display: flex; align-items: center; gap: 0.5rem;">
 				<div class="stars">
 					<% for (let i = 0; i
-					< review.rating; i++) { %>★<% } %>
-					<% for (let i = review.rating; i
+					< review.rating; i++) { %>★<% } %><% for (let i = review.rating; i
 					< 5; i++) { %>☆<% } %>
 				</div>
 				<% if (locals.user && (user.role === 'admin' || user.id === review.user_id)) { %>
@@ -124,7 +115,6 @@
 		</p>
 	</div>
 	<% }); %>
-	<% } else { %>
-	<p>Пока нет отзывов. Будьте первым!</p>
+	<% } else { %><p>Пока нет отзывов. Будьте первым!</p>
 	<% } %>
 </div>
