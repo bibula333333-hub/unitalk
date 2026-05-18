@@ -13,7 +13,11 @@
             <div class="nav-links">
     <a href="/universities" class="nav-link">Вузы</a>
     <% if (typeof user !== 'undefined' && user) { %>
-        <a href="/chats" class="nav-link">Чаты</a>
+       <a href="/user/<%= user.id %>" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
+    <img src="<%= user.avatar %>" alt="Avatar" 
+         style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color);">
+    <span><%= user.full_name %></span>
+</a>
         <% if (user.role === 'admin') { %>
             <a href="/admin" class="nav-link">Админ</a>
         <% } %>
