@@ -73,7 +73,6 @@ function dbExec(sql) {
   saveDb();
 }
 
-// Middleware
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -142,9 +141,7 @@ app.get('/register', (req, res) => {
 app.post('/register', async (req, res) => {
   const { email, password, full_name, role } = req.body;
   const existing = dbGet('SELECT id FROM users WHERE email = ?', [email]);
-  if (existing) {
-    return res.render('register', { error: 'Email уже зарегистрирован' });
-  }
+  if (existing) return res.render('register', { error: 'Email уже зарегистрирован' });
   const hashedPassword = await bcrypt.hash(password, 10);
   dbRun('INSERT INTO users (email, password, full_name, role) VALUES (?, ?, ?, ?)', 
     [email, hashedPassword, full_name, role]);
@@ -189,42 +186,7 @@ app.get('/profile', auth(), (req, res) => {
   const universities = dbAll('SELECT * FROM universities ORDER BY name');
   res.render('profile', { user, studentProfile, universities, error: null });
 });
-// Публичный профиль пользователя
-app.get('/user/:id', auth(), (req, res) => {
-    const profileUser = dbGet('SELECT * FROM users WHERE id = ?', [req.params.id]);
-    if (!profileUser) return res.status(404).send('Пользователь не найден');
 
-    let studentProfile = null;
-    if (profileUser.role === 'student') {
-        studentProfile = dbGet(`
-      SELECT sp.*, u.name as university_name, f.name as faculty_name
-      FROM student_profiles sp
-      LEFT JOIN universities u ON sp.university_id = u.id
-      LEFT JOIN faculties f ON sp.faculty_id = f.id
-      WHERE sp.user_id = ?
-    `, [profileUser.id]);
-    }
-
-    res.render('user-profile', { profileUser, studentProfile });
-});
-// Публичный профиль пользователя
-app.get('/user/:id', auth(), (req, res) => {
-    const profileUser = dbGet('SELECT * FROM users WHERE id = ?', [req.params.id]);
-    if (!profileUser) return res.status(404).send('Пользователь не найден');
-
-    let studentProfile = null;
-    if (profileUser.role === 'student') {
-        studentProfile = dbGet(`
-      SELECT sp.*, u.name as university_name, f.name as faculty_name
-      FROM student_profiles sp
-      LEFT JOIN universities u ON sp.university_id = u.id
-      LEFT JOIN faculties f ON sp.faculty_id = f.id
-      WHERE sp.user_id = ?
-    `, [profileUser.id]);
-    }
-
-    res.render('user-profile', { profileUser, studentProfile });
-});
 app.post('/profile', auth(['student']), upload.single('avatar'), (req, res) => {
   const { university_id, faculty_id, course, graduation_year, bio } = req.body;
   if (req.file) {
@@ -232,13 +194,30 @@ app.post('/profile', auth(['student']), upload.single('avatar'), (req, res) => {
   }
   const existing = dbGet('SELECT id FROM student_profiles WHERE user_id = ?', [req.user.id]);
   if (existing) {
-    dbRun(`UPDATE student_profiles SET university_id=?, faculty_id=?, course=?, graduation_year=?, bio=? WHERE user_id=?`,
+    dbRun('UPDATE student_profiles SET university_id=?, faculty_id=?, course=?, graduation_year=?, bio=? WHERE user_id=?',
       [university_id || null, faculty_id || null, course || null, graduation_year || null, bio || null, req.user.id]);
   } else {
-    dbRun(`INSERT INTO student_profiles (user_id, university_id, faculty_id, course, graduation_year, bio) VALUES (?,?,?,?,?,?)`,
+    dbRun('INSERT INTO student_profiles (user_id, university_id, faculty_id, course, graduation_year, bio) VALUES (?,?,?,?,?,?)',
       [req.user.id, university_id || null, faculty_id || null, course || null, graduation_year || null, bio || null]);
   }
   res.redirect('/profile');
+});
+
+// Публичный профиль пользователя
+app.get('/user/:id', auth(), (req, res) => {
+  const profileUser = dbGet('SELECT * FROM users WHERE id = ?', [req.params.id]);
+  if (!profileUser) return res.status(404).send('Пользователь не найден');
+  let studentProfile = null;
+  if (profileUser.role === 'student') {
+    studentProfile = dbGet(`
+      SELECT sp.*, u.name as university_name, f.name as faculty_name
+      FROM student_profiles sp
+      LEFT JOIN universities u ON sp.university_id = u.id
+      LEFT JOIN faculties f ON sp.faculty_id = f.id
+      WHERE sp.user_id = ?
+    `, [profileUser.id]);
+  }
+  res.render('user-profile', { profileUser, studentProfile });
 });
 
 app.get('/api/faculties/:universityId', (req, res) => {
@@ -268,7 +247,7 @@ app.get('/universities/:id', (req, res) => {
 
 app.post('/universities/:id/review', auth(), (req, res) => {
   const { faculty_id, rating, content, is_anonymous } = req.body;
-  dbRun(`INSERT INTO reviews (user_id, university_id, faculty_id, rating, content, is_anonymous) VALUES (?,?,?,?,?,?)`,
+  dbRun('INSERT INTO reviews (user_id, university_id, faculty_id, rating, content, is_anonymous) VALUES (?,?,?,?,?,?)',
     [req.user.id, req.params.id, faculty_id || null, rating, content, is_anonymous ? 1 : 0]);
   res.redirect(`/universities/${req.params.id}`);
 });
@@ -298,11 +277,11 @@ app.get('/chats', auth(), (req, res) => {
     LEFT JOIN universities un ON sp.university_id=un.id
     LEFT JOIN faculties f ON sp.faculty_id=f.id
     WHERE u.role='student' AND sp.is_available=1 AND u.id!=?
-  `, [req.user.role === 'student' ? req.user.id : 0]);
+  `, [req.user.id]);
   res.render('chats', { chats, students, role: req.user.role });
 });
 
-app.post('/chats/start/:studentId', auth(['applicant']), (req, res) => {
+app.post('/chats/start/:studentId', auth(), (req, res) => {
   let chat = dbGet('SELECT id FROM chats WHERE applicant_id=? AND student_id=?', [req.user.id, req.params.studentId]);
   if (!chat) {
     dbRun('INSERT INTO chats (applicant_id, student_id) VALUES (?,?)', [req.user.id, req.params.studentId]);
@@ -323,7 +302,7 @@ app.get('/chats/:id', auth(), (req, res) => {
     SELECT m.*, u.full_name, u.avatar FROM messages m JOIN users u ON m.sender_id=u.id
     WHERE m.chat_id=? ORDER BY m.created_at ASC LIMIT 100
   `, [req.params.id]);
-  dbRun(`UPDATE messages SET is_read=1 WHERE chat_id=? AND sender_id!=? AND is_read=0`, [req.params.id, req.user.id]);
+  dbRun('UPDATE messages SET is_read=1 WHERE chat_id=? AND sender_id!=? AND is_read=0', [req.params.id, req.user.id]);
   res.render('chat', { chat, partner, messages });
 });
 
@@ -363,22 +342,18 @@ app.post('/admin/users/:id/role', auth(['admin']), (req, res) => {
   dbRun('UPDATE users SET role=? WHERE id=?', [req.body.role, req.params.id]);
   res.redirect('/admin');
 });
-// Удаление отзыва админом
+
 app.post('/admin/reviews/:id/delete', auth(), (req, res) => {
-    const review = dbGet('SELECT * FROM reviews WHERE id = ?', [req.params.id]);
-
-    // Разрешаем удалять админу или автору отзыва
-    if (req.user.role === 'admin' || (review && review.user_id === req.user.id)) {
-        dbRun('DELETE FROM reviews WHERE id = ?', [req.params.id]);
-    }
-
-    const redirect = req.body.redirect || '/admin/reviews';
-    res.redirect(redirect);
+  const review = dbGet('SELECT * FROM reviews WHERE id = ?', [req.params.id]);
+  if (req.user.role === 'admin' || (review && review.user_id === req.user.id)) {
+    dbRun('DELETE FROM reviews WHERE id = ?', [req.params.id]);
+  }
+  const redirect = req.body.redirect || '/admin/reviews';
+  res.redirect(redirect);
 });
 
-// Страница управления отзывами
 app.get('/admin/reviews', auth(['admin']), (req, res) => {
-    const reviews = dbAll(`
+  const reviews = dbAll(`
     SELECT r.*, u.full_name as user_name, un.name as university_name, 
            f.name as faculty_name
     FROM reviews r
@@ -387,9 +362,9 @@ app.get('/admin/reviews', auth(['admin']), (req, res) => {
     LEFT JOIN faculties f ON r.faculty_id = f.id
     ORDER BY r.created_at DESC
   `);
-    res.render('admin-reviews', { reviews });
+  res.render('admin-reviews', { reviews });
 });
-// Запуск сервера
+
 async function start() {
   const SQL = await initSqlJs();
   if (fs.existsSync(DB_PATH)) {
@@ -398,7 +373,6 @@ async function start() {
     db = new SQL.Database();
   }
   
-  // Создаем таблицы если нет
   dbExec(`
     CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, password TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('applicant','student','admin')), full_name TEXT NOT NULL, avatar TEXT DEFAULT '/avatars/default.png', created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS universities (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, city TEXT, description TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
