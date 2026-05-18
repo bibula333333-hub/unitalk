@@ -5,9 +5,25 @@
         <img src="<%= profileUser.avatar %>" alt="Avatar" 
              style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 1rem;">
         <h1><%= profileUser.full_name %></h1>
-        <p style="color: var(--text-secondary);">
-            <%= profileUser.role === 'student' ? 'Студент' : 'Абитуриент' %>
-        </p>
+			<% if (locals.user && user.role === 'admin') { %>
+			<div style="margin-top: 0.5rem;">
+				<form action="/admin/users/"
+					<%= profileUser.id %>/role" method="POST" style="display: inline;">
+					<select name="role" style="padding: 0.25rem; border-radius: 0.25rem;">
+						<option value="applicant"
+							<%= profileUser.role === 'applicant' ? 'selected' : '' %>>Абитуриент
+						</option>
+						<option value="student"
+							<%= profileUser.role === 'student' ? 'selected' : '' %>>Студент
+						</option>
+						<option value="admin"
+							<%= profileUser.role === 'admin' ? 'selected' : '' %>>Админ
+						</option>
+					</select>
+					<button type="submit" class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Сменить роль</button>
+				</form>
+			</div>
+			<% } %>
         
         <% if (profileUser.role === 'student' && studentProfile) { %>
             <div style="margin-top: 1.5rem; text-align: left;">

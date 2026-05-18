@@ -346,9 +346,16 @@ app.post('/admin/users/:id/role', auth(['admin']), (req, res) => {
   res.redirect('/admin');
 });
 // Удаление отзыва админом
-app.post('/admin/reviews/:id/delete', auth(['admin']), (req, res) => {
-    dbRun('DELETE FROM reviews WHERE id = ?', [req.params.id]);
-    res.redirect('/admin/reviews');
+app.post('/admin/reviews/:id/delete', auth(), (req, res) => {
+    const review = dbGet('SELECT * FROM reviews WHERE id = ?', [req.params.id]);
+
+    // Разрешаем удалять админу или автору отзыва
+    if (req.user.role === 'admin' || (review && review.user_id === req.user.id)) {
+        dbRun('DELETE FROM reviews WHERE id = ?', [req.params.id]);
+    }
+
+    const redirect = req.body.redirect || '/admin/reviews';
+    res.redirect(redirect);
 });
 
 // Страница управления отзывами

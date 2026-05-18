@@ -73,31 +73,47 @@
 
     <% if (reviews.length > 0) { %>
         <% reviews.forEach(review => { %>
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <img src="<%= review.avatar %>" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%;">
-                        <div>
-							<strong>
-								<a href="/user/"
-									<%= review.user_id %>" style="color: inherit; text-decoration: none;"><%= review.display_name %>
-								</a>
-							</strong>
-                            <% if (review.faculty_name) { %>
-                                <span style="color: var(--text-secondary);">• <%= review.faculty_name %></span>
-                            <% } %>
-                            <div style="font-size: 0.875rem; color: var(--text-secondary);">
-                                <%= new Date(review.created_at).toLocaleDateString('ru-RU') %>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="stars">
-                        <% for (let i = 0; i < review.rating; i++) { %>★<% } %>
-                        <% for (let i = review.rating; i < 5; i++) { %>☆<% } %>
-                    </div>
-                </div>
-                <p style="margin-top: 0.75rem;"><%= review.content %></p>
-            </div>
+		<div class="card">
+			<div style="display: flex; justify-content: space-between; align-items: start;">
+				<div style="display: flex; align-items: center; gap: 0.5rem;">
+					<img src=""<%= review.avatar %>" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%;">
+					<div>
+						<strong>
+							<a href="/user/"
+								<%= review.user_id %>" style="color: inherit; text-decoration: none;"><%= review.display_name %>
+							</a>
+						</strong>
+						<% if (review.faculty_name) { %>
+						<span style="color: var(--text-secondary);">
+							• <%= review.faculty_name %>
+						</span>
+						<% } %>
+						<div style="font-size: 0.875rem; color: var(--text-secondary);">
+							<%= new Date(review.created_at).toLocaleDateString('ru-RU') %>
+						</div>
+					</div>
+				</div>
+				<div style="display: flex; align-items: center; gap: 1rem;">
+					<div class="stars">
+						<% for (let i = 0; i
+						< review.rating; i++) { %>★<% } %>
+						<% for (let i = review.rating; i
+						< 5; i++) { %>☆<% } %>
+					</div>
+					<% if (locals.user && (user.role === 'admin' || user.id === review.user_id)) { %>
+					<form action="/admin/reviews/"
+						<%= review.id %>/delete" method="POST"
+						onsubmit="return confirm('Удалить этот отзыв?')" style="display: inline;">
+						<input type="hidden" name="redirect" value="/universities/"<%= university.id %>">
+						<button type="submit" style="background: none; border: none; cursor: pointer; font-size: 1.2rem;" title="Удалить">🗑️</button>
+					</form>
+					<% } %>
+				</div>
+			</div>
+			<p style="margin-top: 0.75rem;">
+				<%= review.content %>
+			</p>
+		</div>
         <% }); %>
     <% } else { %>
         <p>Пока нет отзывов. Будьте первым!</p>
