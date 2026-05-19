@@ -1,41 +1,42 @@
 <div style="display: flex; justify-content: space-between; align-items: center;">
-    <h1>Управление отзывами</h1>
-    <a href="/admin" class="btn btn-outline">← Назад к админке</a>
+	<h1>Управление отзывами</h1>
+	<a href="/admin" class="btn btn-outline">← Назад к админке</a>
 </div>
 
 <div class="mt-2">
-    <% if (reviews.length > 0) { %>
-        <% reviews.forEach(review => { %>
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <div>
-                        <strong><%= review.user_name %></strong>
-                        <span style="color: var(--text-secondary);">
-                            о <%= review.university_name %>
-                            <% if (review.faculty_name) { %>
-                                • <%= review.faculty_name %>
-                            <% } %>
-                        </span>
-                        <div class="stars">
-                            <% for (let i = 0; i < review.rating; i++) { %>★<% } %>
-                            <% for (let i = review.rating; i < 5; i++) { %>☆<% } %>
-                        </div>
-                    </div>
-                    <form action="/admin/reviews/<%= review.id %>/delete" method="POST" 
-                          onsubmit="return confirm('Точно удалить этот отзыв?')">
-                        <button type="submit" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
-                            🗑 Удалить
-                        </button>
-                    </form>
-                </div>
-                <p style="margin-top: 0.75rem;"><%= review.content %></p>
-                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">
-                    <%= new Date(review.created_at).toLocaleDateString('ru-RU') %>
-                    <% if (review.is_anonymous) { %> • Анонимный<% } %>
-                </p>
-            </div>
-        <% }); %>
-    <% } else { %>
-        <p>Нет отзывов для управления</p>
-    <% } %>
+	<% if (reviews.length > 0) { %>
+		<% reviews.forEach(review => { %>
+			<div class="card">
+				<div style="display: flex; justify-content: space-between; align-items: start;">
+					<div>
+						<strong><%= review.user_name %></strong>
+						<span style="color: var(--text-secondary);">
+							о <%= review.university_name %>
+							<% if (review.faculty_name) { %>
+								• <%= review.faculty_name %>
+							<% } %>
+						</span>
+						<div class="stars">
+							<% for (let i = 0; i < review.rating; i++) { %>★<% } %>
+							<% for (let i = review.rating; i < 5; i++) { %>☆<% } %>
+						</div>
+					</div>
+					<form action="/admin/reviews/<%= review.id %>/delete" method="POST"
+						  onsubmit="return confirm('Точно удалить этот отзыв?')">
+						<input type="hidden" name="redirect" value="/admin/reviews">
+						<button type="submit" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+							🗑 Удалить
+						</button>
+					</form>
+				</div>
+				<p style="margin-top: 0.75rem;"><%= review.content %></p>
+				<p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">
+					<%= new Date(review.created_at).toLocaleDateString('ru-RU') %>
+					<% if (review.is_anonymous) { %> • Анонимный<% } %>
+				</p>
+			</div>
+		<% }); %>
+	<% } else { %>
+		<p>Нет отзывов для управления</p>
+	<% } %>
 </div>

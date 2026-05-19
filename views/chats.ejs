@@ -1,69 +1,63 @@
 <h1>Чаты</h1>
 
 <div class="grid grid-2">
-    <div>
-        <h2>Ваши чаты</h2>
-        <% if (chats.length > 0) { %>
-            <% chats.forEach(chat => { %>
-                <a href="/chats/<%= chat.id %>" class="card" style="text-decoration: none; color: inherit; display: block;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <img src="<%= chat.avatar %>" alt="Avatar" style="width: 50px; height: 50px; border-radius: 50%;">
-                        <div style="flex: 1;">
+	<div>
+		<h2>Ваши чаты</h2>
+		<% if (chats.length > 0) { %>
+			<% chats.forEach(chat => { %>
+				<a href="/chats/<%= chat.id %>" class="card" style="text-decoration: none; color: inherit; display: block;">
+					<div style="display: flex; align-items: center; gap: 1rem;">
+						<img src="<%= chat.avatar %>" alt="Avatar" style="width: 50px; height: 50px; border-radius: 50%;">
+						<div style="flex: 1;">
 							<strong>
-								<a href="/user/"
-									<%= chat.applicant_id === user.id ? chat.student_id : chat.applicant_id %>" style="color: inherit; text-decoration: none;"><%= chat.full_name %>
-								</a>
+								<a href="/user/<%= chat.applicant_id === user.id ? chat.student_id : chat.applicant_id %>" style="color: inherit; text-decoration: none;"><%= chat.full_name %></a>
 							</strong>
-                            <% if (chat.last_message) { %>
-                                <p style="color: var(--text-secondary);"><%= chat.last_message.substring(0, 100) %></p>
-                            <% } %>
-                        </div>
-                        <% if (chat.unread_count > 0) { %>
-                            <span style="background: var(--primary-color); color: white; padding: 0.25rem 0.5rem; border-radius: 1rem;">
-                                <%= chat.unread_count %>
-                            </span>
-                        <% } %>
-                    </div>
-                </a>
-            <% }); %>
-        <% } else { %>
-            <p>У вас пока нет чатов</p>
-        <% } %>
-    </div>
+							<% if (chat.last_message) { %>
+								<p style="color: var(--text-secondary);"><%= chat.last_message.substring(0, 100) %></p>
+							<% } %>
+						</div>
+						<% if (chat.unread_count > 0) { %>
+							<span style="background: var(--primary-color); color: white; padding: 0.25rem 0.5rem; border-radius: 1rem;">
+								<%= chat.unread_count %>
+							</span>
+						<% } %>
+					</div>
+				</a>
+			<% }); %>
+		<% } else { %>
+			<p>У вас пока нет чатов</p>
+		<% } %>
+	</div>
 
-    <% if (role === 'applicant') { %>
-        <div>
-            <h2>Доступные студенты</h2>
-            <% if (students.length > 0) { %>
-                <% students.forEach(student => { %>
-                    <div class="card">
-                        <div style="display: flex; align-items: center; gap: 1rem;">
-                            <img src="<%= student.avatar %>" alt="Avatar" style="width: 50px; height: 50px; border-radius: 50%;">
-                            <div style="flex: 1;">
-								<strong>
-									<a href="/user/"
-										<%= student.id %>" style="color: inherit; text-decoration: none;"><%= student.full_name %>
-									</a>
-								</strong>
-                                <% if (student.university_name) { %>
-                                    <p style="color: var(--text-secondary);"><%= student.university_name %></p>
-                                <% } %>
-                                <% if (student.faculty_name && student.course) { %>
-                                    <p style="color: var(--text-secondary);"><%= student.faculty_name %>, <%= student.course %> курс</p>
-                                <% } %>
-                                <% if (student.bio) { %>
-                                    <p style="font-size: 0.875rem; margin-top: 0.5rem;"><%= student.bio.substring(0, 150) %></p>
-                                <% } %>
-                            </div>
-                            <form action="/chats/start/<%= student.id %>" method="POST">
-                                <button type="submit" class="btn btn-primary">Написать</button>
-                            </form>
-                        </div>
-                    </div>
-                <% }); %>
-            <% } else { %>
-                <p>Нет доступных студентов</p>
-            <% } %>
-        </div>
-    <% } %>
+	<div>
+		<h2>Доступные студенты</h2>
+		<% if (students.length > 0) { %>
+			<% students.forEach(student => { %>
+				<div class="card">
+					<div style="display: flex; align-items: center; gap: 1rem;">
+						<img src="<%= student.avatar %>" alt="Avatar" style="width: 50px; height: 50px; border-radius: 50%;">
+						<div style="flex: 1;">
+							<strong>
+								<a href="/user/<%= student.id %>" style="color: inherit; text-decoration: none;"><%= student.full_name %></a>
+							</strong>
+							<% if (student.university_name) { %>
+								<p style="color: var(--text-secondary);">🏫 <%= student.university_name %></p>
+							<% } %>
+							<% if (student.faculty_name && student.course) { %>
+								<p style="color: var(--text-secondary);"><%= student.faculty_name %>, <%= student.course %> курс</p>
+							<% } %>
+							<% if (student.bio) { %>
+								<p style="font-size: 0.875rem; margin-top: 0.5rem;"><%= student.bio.substring(0, 150) %></p>
+							<% } %>
+						</div>
+						<form action="/chats/start/<%= student.id %>" method="POST">
+							<button type="submit" class="btn btn-primary">Написать</button>
+						</form>
+					</div>
+				</div>
+			<% }); %>
+		<% } else { %>
+			<p>Нет доступных студентов</p>
+		<% } %>
+	</div>
 </div>

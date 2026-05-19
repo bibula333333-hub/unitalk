@@ -81,6 +81,22 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 
+// Layout middleware: wrap all views with layout.ejs
+app.use((req, res, next) => {
+  const originalRender = res.render.bind(res);
+  res.render = function(view, options, callback) {
+    const opts = (typeof options === 'object' ? options : {}) || {};
+    originalRender(view, opts, (err, body) => {
+      if (err) return next(err);
+      originalRender('layout', { ...opts, body }, callback || ((err2, html) => {
+        if (err2) return next(err2);
+        res.send(html);
+      }));
+    });
+  };
+  next();
+});
+
 const storage = multer.diskStorage({
   destination: './public/avatars/',
   filename: (req, file, cb) => {
@@ -188,18 +204,20 @@ app.get('/profile', auth(), (req, res) => {
   res.render('profile', { user, studentProfile, universities, error: null });
 });
 
-app.post('/profile', auth(['student']), upload.single('avatar'), (req, res) => {
-  const { university_id, faculty_id, course, graduation_year, bio } = req.body;
+app.post('/profile', auth(), upload.single('avatar'), (req, res) => {
   if (req.file) {
     dbRun('UPDATE users SET avatar = ? WHERE id = ?', [`/avatars/${req.file.filename}`, req.user.id]);
   }
-  const existing = dbGet('SELECT id FROM student_profiles WHERE user_id = ?', [req.user.id]);
-  if (existing) {
-    dbRun('UPDATE student_profiles SET university_id=?, faculty_id=?, course=?, graduation_year=?, bio=? WHERE user_id=?',
-      [university_id || null, faculty_id || null, course || null, graduation_year || null, bio || null, req.user.id]);
-  } else {
-    dbRun('INSERT INTO student_profiles (user_id, university_id, faculty_id, course, graduation_year, bio) VALUES (?,?,?,?,?,?)',
-      [req.user.id, university_id || null, faculty_id || null, course || null, graduation_year || null, bio || null]);
+  if (req.user.role === 'student') {
+    const { university_id, faculty_id, course, graduation_year, bio } = req.body;
+    const existing = dbGet('SELECT id FROM student_profiles WHERE user_id = ?', [req.user.id]);
+    if (existing) {
+      dbRun('UPDATE student_profiles SET university_id=?, faculty_id=?, course=?, graduation_year=?, bio=? WHERE user_id=?',
+        [university_id || null, faculty_id || null, course || null, graduation_year || null, bio || null, req.user.id]);
+    } else {
+      dbRun('INSERT INTO student_profiles (user_id, university_id, faculty_id, course, graduation_year, bio) VALUES (?,?,?,?,?,?)',
+        [req.user.id, university_id || null, faculty_id || null, course || null, graduation_year || null, bio || null]);
+    }
   }
   res.redirect('/profile');
 });
@@ -254,15 +272,21 @@ app.post('/universities/:id/review', auth(), (req, res) => {
 });
 
 app.get('/chats', auth(), (req, res) => {
-  let chats, students;
+  let chats;
   if (req.user.role === 'student') {
+    // Student can be both initiator and receiver
     chats = dbAll(`
-      SELECT c.*, u.full_name, u.avatar,
+      SELECT c.*,
+        CASE WHEN c.student_id=? THEN u1.full_name ELSE u2.full_name END as full_name,
+        CASE WHEN c.student_id=? THEN u1.avatar ELSE u2.avatar END as avatar,
         (SELECT COUNT(*) FROM messages WHERE chat_id=c.id AND sender_id!=? AND is_read=0) as unread_count,
         (SELECT content FROM messages WHERE chat_id=c.id ORDER BY created_at DESC LIMIT 1) as last_message
-      FROM chats c JOIN users u ON c.applicant_id=u.id
-      WHERE c.student_id=? ORDER BY (SELECT MAX(created_at) FROM messages WHERE chat_id=c.id) DESC
-    `, [req.user.id, req.user.id]);
+      FROM chats c
+      JOIN users u1 ON c.applicant_id=u1.id
+      JOIN users u2 ON c.student_id=u2.id
+      WHERE c.student_id=? OR c.applicant_id=?
+      ORDER BY (SELECT MAX(created_at) FROM messages WHERE chat_id=c.id) DESC
+    `, [req.user.id, req.user.id, req.user.id, req.user.id, req.user.id]);
   } else {
     chats = dbAll(`
       SELECT c.*, u.full_name, u.avatar,
@@ -272,21 +296,25 @@ app.get('/chats', auth(), (req, res) => {
       WHERE c.applicant_id=? ORDER BY (SELECT MAX(created_at) FROM messages WHERE chat_id=c.id) DESC
     `, [req.user.id, req.user.id]);
   }
-  students = dbAll(`
+  const students = dbAll(`
     SELECT u.id, u.full_name, u.avatar, sp.bio, un.name as university_name, f.name as faculty_name, sp.course
     FROM users u JOIN student_profiles sp ON u.id=sp.user_id
     LEFT JOIN universities un ON sp.university_id=un.id
     LEFT JOIN faculties f ON sp.faculty_id=f.id
     WHERE u.role='student' AND sp.is_available=1 AND u.id!=?
   `, [req.user.id]);
-  res.render('chats', { chats, students, role: req.user.role });
+  res.render('chats', { chats, students, role: req.user.role, user: res.locals.user });
 });
 
 app.post('/chats/start/:studentId', auth(), (req, res) => {
-  let chat = dbGet('SELECT id FROM chats WHERE applicant_id=? AND student_id=?', [req.user.id, req.params.studentId]);
+  const targetId = parseInt(req.params.studentId);
+  const myId = req.user.id;
+  // Check both directions
+  let chat = dbGet('SELECT id FROM chats WHERE (applicant_id=? AND student_id=?) OR (applicant_id=? AND student_id=?)',
+    [myId, targetId, targetId, myId]);
   if (!chat) {
-    dbRun('INSERT INTO chats (applicant_id, student_id) VALUES (?,?)', [req.user.id, req.params.studentId]);
-    chat = dbGet('SELECT id FROM chats WHERE applicant_id=? AND student_id=?', [req.user.id, req.params.studentId]);
+    dbRun('INSERT INTO chats (applicant_id, student_id) VALUES (?,?)', [myId, targetId]);
+    chat = dbGet('SELECT id FROM chats WHERE applicant_id=? AND student_id=?', [myId, targetId]);
   }
   res.redirect(`/chats/${chat.id}`);
 });
