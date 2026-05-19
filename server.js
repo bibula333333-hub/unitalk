@@ -335,41 +335,100 @@ app.get('/chats/:id', auth(), (req, res) => {
   res.render('chat', { chat, partner, messages });
 });
 
-app.get('/admin', auth(['admin']), (req, res) => {
-  const universities = dbAll('SELECT * FROM universities ORDER BY name');
-  const users = dbAll('SELECT * FROM users ORDER BY created_at DESC');
-  const stats = {
-    totalUsers: dbGet('SELECT COUNT(*) as count FROM users').count,
-    totalUniversities: dbGet('SELECT COUNT(*) as count FROM universities').count,
-    totalReviews: dbGet('SELECT COUNT(*) as count FROM reviews').count,
-    totalChats: dbGet('SELECT COUNT(*) as count FROM chats').count,
+function getAdminPageData() {
+  return {
+    universities: dbAll('SELECT * FROM universities ORDER BY name'),
+    users: dbAll('SELECT * FROM users ORDER BY created_at DESC'),
+    admins: dbAll("SELECT * FROM users WHERE role='admin' ORDER BY full_name"),
+    faculties: dbAll(`SELECT f.*, u.name as university_name FROM faculties f LEFT JOIN universities u ON f.university_id=u.id ORDER BY u.name, f.name`),
+    stats: {
+      totalUsers: dbGet('SELECT COUNT(*) as count FROM users').count,
+      totalUniversities: dbGet('SELECT COUNT(*) as count FROM universities').count,
+      totalReviews: dbGet('SELECT COUNT(*) as count FROM reviews').count,
+      totalChats: dbGet('SELECT COUNT(*) as count FROM chats').count,
+    }
   };
-  res.render('admin', { universities, users, stats, error: null, success: null });
+}
+
+app.get('/admin', auth(['admin']), (req, res) => {
+  res.render('admin', { ...getAdminPageData(), error: null, success: null });
 });
 
 app.post('/admin/universities', auth(['admin']), (req, res) => {
-  dbRun('INSERT INTO universities (name, city, description) VALUES (?,?,?)', [req.body.name, req.body.city, req.body.description]);
-  res.redirect('/admin');
+  dbRun('INSERT INTO universities (name, city, description) VALUES (?,?,?)', [req.body.name, req.body.city || null, req.body.description || null]);
+  res.redirect('/admin#universities');
+});
+
+app.get('/admin/universities/:id/edit', auth(['admin']), (req, res) => {
+  const university = dbGet('SELECT * FROM universities WHERE id=?', [req.params.id]);
+  if (!university) return res.redirect('/admin');
+  res.render('admin-university-edit', { university });
+});
+
+app.post('/admin/universities/:id/edit', auth(['admin']), (req, res) => {
+  dbRun('UPDATE universities SET name=?, city=?, description=? WHERE id=?',
+    [req.body.name, req.body.city || null, req.body.description || null, req.params.id]);
+  res.redirect('/admin#universities');
 });
 
 app.post('/admin/universities/:id/delete', auth(['admin']), (req, res) => {
   dbRun('DELETE FROM universities WHERE id=?', [req.params.id]);
-  res.redirect('/admin');
+  res.redirect('/admin#universities');
 });
 
 app.post('/admin/faculties', auth(['admin']), (req, res) => {
-  dbRun('INSERT INTO faculties (university_id, name, description) VALUES (?,?,?)', [req.body.university_id, req.body.name, req.body.description]);
-  res.redirect('/admin');
+  dbRun('INSERT INTO faculties (university_id, name, description) VALUES (?,?,?)', [req.body.university_id, req.body.name, req.body.description || null]);
+  res.redirect('/admin#faculties');
+});
+
+app.get('/admin/faculties/:id/edit', auth(['admin']), (req, res) => {
+  const faculty = dbGet('SELECT * FROM faculties WHERE id=?', [req.params.id]);
+  if (!faculty) return res.redirect('/admin');
+  const universities = dbAll('SELECT * FROM universities ORDER BY name');
+  res.render('admin-faculty-edit', { faculty, universities });
+});
+
+app.post('/admin/faculties/:id/edit', auth(['admin']), (req, res) => {
+  dbRun('UPDATE faculties SET university_id=?, name=?, description=? WHERE id=?',
+    [req.body.university_id, req.body.name, req.body.description || null, req.params.id]);
+  res.redirect('/admin#faculties');
 });
 
 app.post('/admin/faculties/:id/delete', auth(['admin']), (req, res) => {
   dbRun('DELETE FROM faculties WHERE id=?', [req.params.id]);
-  res.redirect('/admin');
+  res.redirect('/admin#faculties');
 });
 
 app.post('/admin/users/:id/role', auth(['admin']), (req, res) => {
   dbRun('UPDATE users SET role=? WHERE id=?', [req.body.role, req.params.id]);
-  res.redirect('/admin');
+  res.redirect('/admin#users');
+});
+
+// Назначить администратора по ссылке на профиль
+app.post('/admin/make-admin', auth(['admin']), (req, res) => {
+  const url = req.body.profile_url || '';
+  const match = url.match(/\/user\/(\d+)/);
+  if (!match) {
+    return res.render('admin', { ...getAdminPageData(), error: 'Неверная ссылка. Формат: /user/5 или полный URL с /user/5', success: null });
+  }
+  const userId = parseInt(match[1]);
+  const target = dbGet('SELECT * FROM users WHERE id=?', [userId]);
+  if (!target) {
+    return res.render('admin', { ...getAdminPageData(), error: `Пользователь с ID ${userId} не найден`, success: null });
+  }
+  dbRun('UPDATE users SET role=? WHERE id=?', ['admin', userId]);
+  res.render('admin', { ...getAdminPageData(), success: `${target.full_name} назначен администратором`, error: null });
+});
+
+// Назначить администратора по email
+app.post('/admin/make-admin-by-email', auth(['admin']), (req, res) => {
+  const email = (req.body.email || '').trim().toLowerCase();
+  const target = dbGet('SELECT * FROM users WHERE LOWER(email)=?', [email]);
+  if (!target) {
+    return res.render('admin', { ...getAdminPageData(), error: `Пользователь с email "${email}" не найден`, success: null });
+  }
+  dbRun('UPDATE users SET role=? WHERE id=?', ['admin', target.id]);
+  res.render('admin', { ...getAdminPageData(), success: `${target.full_name} назначен администратором`, error: null });
 });
 
 app.post('/admin/reviews/:id/delete', auth(), (req, res) => {

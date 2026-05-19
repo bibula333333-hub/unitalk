@@ -1,1 +1,307 @@
-<h1>Админ панель</h1>  <div class="admin-grid">     <div class="stat-card">         <div class="stat-number"><%= stats.totalUsers %></div>         <div class="stat-label">Пользователей</div>     </div>     <div class="stat-card">         <div class="stat-number"><%= stats.totalUniversities %></div>         <div class="stat-label">Вузов</div>     </div>     <div class="stat-card">         <div class="stat-number"><%= stats.totalReviews %></div>         <div class="stat-label">Отзывов</div>     </div>     <div class="stat-card">         <div class="stat-number"><%= stats.totalChats %></div>         <div class="stat-label">Чатов</div>     </div> </div> <div style="margin-bottom: 1rem;"> 	<a href="/admin/reviews" class="btn btn-outline">📝 Управление отзывами</a> </div> <div class="grid grid-2">     <div>         <div class="card">             <h2>Добавить вуз</h2>             <form action="/admin/universities" method="POST">                 <div class="form-group">                     <label class="form-label">Название вуза</label>                     <input type="text" name="name" class="form-input" required>                 </div>                 <div class="form-group">                     <label class="form-label">Город</label>                     <input type="text" name="city" class="form-input">                 </div>                 <div class="form-group">                     <label class="form-label">Описание</label>                     <textarea name="description" class="form-input" rows="3"></textarea>                 </div>                 <button type="submit" class="btn btn-primary">Добавить</button>             </form>         </div>          <div class="card">             <h2>Управление вузами</h2>             <% universities.forEach(university => { %>                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">                     <span><%= university.name %></span>                     <form action="/admin/universities/<%= university.id %>/delete" method="POST" style="display: inline;">                         <button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">Удалить</button>                     </form>                 </div>             <% }); %>         </div>     </div>      <div>         <div class="card">             <h2>Добавить факультет</h2>             <form action="/admin/faculties" method="POST">                 <div class="form-group">                     <label class="form-label">Вуз</label>                     <select name="university_id" class="form-input" required>                         <option value="">Выберите вуз</option>                         <% universities.forEach(university => { %>                             <option value="<%= university.id %>"><%= university.name %></option>                         <% }); %>                     </select>                 </div>                 <div class="form-group">                     <label class="form-label">Название факультета</label>                     <input type="text" name="name" class="form-input" required>                 </div>                 <div class="form-group">                     <label class="form-label">Описание</label>                     <textarea name="description" class="form-input" rows="3"></textarea>                 </div>                 <button type="submit" class="btn btn-primary">Добавить</button>             </form>         </div>          <div class="card">             <h2>Пользователи</h2>             <% users.forEach(u => { %>                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">                     <div>                         <strong><%= u.full_name %></strong>                         <span style="color: var(--text-secondary); margin-left: 0.5rem;"><%= u.email %></span>                     </div>                     <form action="/admin/users/<%= u.id %>/role" method="POST" style="display: flex; gap: 0.5rem;">                         <select name="role" class="form-input" style="width: auto;">                             <option value="applicant" <%= u.role === 'applicant' ? 'selected' : '' %>>Абитуриент</option>                             <option value="student" <%= u.role === 'student' ? 'selected' : '' %>>Студент</option>                             <option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>Админ</option>                         </select>                         <button type="submit" class="btn btn-outline" style="padding: 0.5rem;">Сохранить</button>                     </form>                 </div>             <% }); %>         </div>     </div> </div>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+	<h1>⚙️ Панель администратора</h1>
+	<a href="/admin/reviews" class="btn btn-outline">📝 Управление отзывами</a>
+</div>
+
+<% if (typeof success !== 'undefined' && success) { %>
+	<div class="alert" style="background: #D1FAE5; color: #065F46; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">✅ <%= success %></div>
+<% } %>
+<% if (typeof error !== 'undefined' && error) { %>
+	<div class="alert" style="background: #FEE2E2; color: #991B1B; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">❌ <%= error %></div>
+<% } %>
+
+<!-- Статистика -->
+<div class="admin-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+	<div class="stat-card card" style="text-align: center;">
+		<div class="stat-number" style="font-size: 2rem; font-weight: 700; color: var(--primary-color);"><%= stats.totalUsers %></div>
+		<div class="stat-label" style="color: var(--text-secondary);">👤 Пользователей</div>
+	</div>
+	<div class="stat-card card" style="text-align: center;">
+		<div class="stat-number" style="font-size: 2rem; font-weight: 700; color: var(--primary-color);"><%= stats.totalUniversities %></div>
+		<div class="stat-label" style="color: var(--text-secondary);">🏫 Вузов</div>
+	</div>
+	<div class="stat-card card" style="text-align: center;">
+		<div class="stat-number" style="font-size: 2rem; font-weight: 700; color: var(--primary-color);"><%= stats.totalReviews %></div>
+		<div class="stat-label" style="color: var(--text-secondary);">📝 Отзывов</div>
+	</div>
+	<div class="stat-card card" style="text-align: center;">
+		<div class="stat-number" style="font-size: 2rem; font-weight: 700; color: var(--primary-color);"><%= stats.totalChats %></div>
+		<div class="stat-label" style="color: var(--text-secondary);">💬 Чатов</div>
+	</div>
+</div>
+
+<!-- Табы -->
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color);">
+	<button class="tab-btn active" onclick="showTab('universities')" id="tab-universities"
+		style="padding: 0.75rem 1.25rem; border: none; background: none; cursor: pointer; font-weight: 600; color: var(--primary-color); border-bottom: 3px solid var(--primary-color); margin-bottom: -2px;">
+		🏫 Вузы
+	</button>
+	<button class="tab-btn" onclick="showTab('faculties')" id="tab-faculties"
+		style="padding: 0.75rem 1.25rem; border: none; background: none; cursor: pointer; font-weight: 500; color: var(--text-secondary);">
+		📚 Факультеты
+	</button>
+	<button class="tab-btn" onclick="showTab('users')" id="tab-users"
+		style="padding: 0.75rem 1.25rem; border: none; background: none; cursor: pointer; font-weight: 500; color: var(--text-secondary);">
+		👥 Пользователи
+	</button>
+	<button class="tab-btn" onclick="showTab('admins')" id="tab-admins"
+		style="padding: 0.75rem 1.25rem; border: none; background: none; cursor: pointer; font-weight: 500; color: var(--text-secondary);">
+		👑 Администраторы
+	</button>
+</div>
+
+<!-- ТАБ: ВУЗЫ -->
+<div id="section-universities">
+	<div class="grid grid-2">
+		<div class="card">
+			<h2>➕ Добавить вуз</h2>
+			<form action="/admin/universities" method="POST">
+				<div class="form-group">
+					<label class="form-label">Название вуза *</label>
+					<input type="text" name="name" class="form-input" required placeholder="Московский государственный университет">
+				</div>
+				<div class="form-group">
+					<label class="form-label">Город</label>
+					<input type="text" name="city" class="form-input" placeholder="Москва">
+				</div>
+				<div class="form-group">
+					<label class="form-label">Описание</label>
+					<textarea name="description" class="form-input" rows="4" placeholder="Краткое описание вуза, история, особенности..."></textarea>
+				</div>
+				<button type="submit" class="btn btn-primary">Добавить вуз</button>
+			</form>
+		</div>
+
+		<div class="card">
+			<h2>🏫 Список вузов (<%= universities.length %>)</h2>
+			<div style="max-height: 500px; overflow-y: auto;">
+				<% if (universities.length === 0) { %>
+					<p style="color: var(--text-secondary);">Вузы ещё не добавлены</p>
+				<% } %>
+				<% universities.forEach(university => { %>
+					<div style="padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
+						<div style="display: flex; justify-content: space-between; align-items: start;">
+							<div>
+								<strong><%= university.name %></strong>
+								<% if (university.city) { %><span style="color: var(--text-secondary); margin-left: 0.5rem;">📍 <%= university.city %></span><% } %>
+								<% if (university.description) { %>
+									<p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.25rem; max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><%= university.description %></p>
+								<% } %>
+							</div>
+							<div style="display: flex; gap: 0.5rem; flex-shrink: 0; margin-left: 1rem;">
+								<a href="/admin/universities/<%= university.id %>/edit" class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">✏️ Изменить</a>
+								<form action="/admin/universities/<%= university.id %>/delete" method="POST" style="display: inline;" onsubmit="return confirm('Удалить вуз <%= university.name %>? Все факультеты и отзывы также будут удалены!')">
+									<button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">🗑</button>
+								</form>
+							</div>
+						</div>
+					</div>
+				<% }); %>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- ТАБ: ФАКУЛЬТЕТЫ -->
+<div id="section-faculties" style="display:none;">
+	<div class="grid grid-2">
+		<div class="card">
+			<h2>➕ Добавить факультет</h2>
+			<form action="/admin/faculties" method="POST">
+				<div class="form-group">
+					<label class="form-label">Вуз *</label>
+					<select name="university_id" class="form-input" required>
+						<option value="">Выберите вуз</option>
+						<% universities.forEach(university => { %>
+							<option value="<%= university.id %>"><%= university.name %></option>
+						<% }); %>
+					</select>
+				</div>
+				<div class="form-group">
+					<label class="form-label">Название факультета *</label>
+					<input type="text" name="name" class="form-input" required placeholder="Факультет информационных технологий">
+				</div>
+				<div class="form-group">
+					<label class="form-label">Описание</label>
+					<textarea name="description" class="form-input" rows="4" placeholder="Описание факультета, специальности, направления..."></textarea>
+				</div>
+				<button type="submit" class="btn btn-primary">Добавить факультет</button>
+			</form>
+		</div>
+
+		<div class="card">
+			<h2>📚 Список факультетов (<%= faculties.length %>)</h2>
+			<% if (universities.length === 0) { %>
+				<p style="color: var(--text-secondary);">Сначала добавьте вузы</p>
+			<% } %>
+			<div style="max-height: 500px; overflow-y: auto;">
+				<% let lastUniId = null; %>
+				<% faculties.forEach(faculty => { %>
+					<% if (faculty.university_id !== lastUniId) { %>
+						<% lastUniId = faculty.university_id; %>
+						<p style="font-weight: 600; color: var(--primary-color); margin-top: 0.75rem; margin-bottom: 0.25rem; font-size: 0.85rem;">🏫 <%= faculty.university_name %></p>
+					<% } %>
+					<div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color);">
+						<div>
+							<span><%= faculty.name %></span>
+							<% if (faculty.description) { %>
+								<p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.1rem; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><%= faculty.description %></p>
+							<% } %>
+						</div>
+						<div style="display: flex; gap: 0.5rem; flex-shrink: 0; margin-left: 0.5rem;">
+							<a href="/admin/faculties/<%= faculty.id %>/edit" class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">✏️</a>
+							<form action="/admin/faculties/<%= faculty.id %>/delete" method="POST" style="display: inline;" onsubmit="return confirm('Удалить факультет?')">
+								<button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">🗑</button>
+							</form>
+						</div>
+					</div>
+				<% }); %>
+				<% if (faculties.length === 0) { %><p style="color: var(--text-secondary);">Факультеты ещё не добавлены</p><% } %>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- ТАБ: ПОЛЬЗОВАТЕЛИ -->
+<div id="section-users" style="display:none;">
+	<div class="card">
+		<h2>👥 Все пользователи (<%= users.length %>)</h2>
+		<div style="margin-bottom: 1rem;">
+			<input type="text" id="userSearch" class="form-input" placeholder="🔍 Поиск по имени или email..." oninput="filterUsers()" style="max-width: 400px;">
+		</div>
+		<div style="overflow-x: auto;">
+			<table style="width: 100%; border-collapse: collapse;" id="usersTable">
+				<thead>
+					<tr style="border-bottom: 2px solid var(--border-color);">
+						<th style="text-align: left; padding: 0.5rem;">Пользователь</th>
+						<th style="text-align: left; padding: 0.5rem;">Email</th>
+						<th style="text-align: left; padding: 0.5rem;">Дата</th>
+						<th style="text-align: left; padding: 0.5rem;">Роль</th>
+						<th style="text-align: left; padding: 0.5rem;">Действие</th>
+					</tr>
+				</thead>
+				<tbody>
+					<% users.forEach(u => { %>
+						<tr style="border-bottom: 1px solid var(--border-color);" class="user-row">
+							<td style="padding: 0.5rem;">
+								<div style="display: flex; align-items: center; gap: 0.5rem;">
+									<img src="<%= u.avatar %>" alt="" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+									<a href="/user/<%= u.id %>" style="color: inherit; text-decoration: none;"><strong class="user-name"><%= u.full_name %></strong></a>
+								</div>
+							</td>
+							<td style="padding: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;" class="user-email"><%= u.email %></td>
+							<td style="padding: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;"><%= new Date(u.created_at).toLocaleDateString('ru-RU') %></td>
+							<td style="padding: 0.5rem;">
+								<span style="padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.8rem;
+									background: <%= u.role === 'admin' ? '#EDE9FE' : u.role === 'student' ? '#D1FAE5' : '#FEF3C7' %>;
+									color: <%= u.role === 'admin' ? '#5B21B6' : u.role === 'student' ? '#065F46' : '#92400E' %>;">
+									<%= u.role === 'admin' ? '👑 Админ' : u.role === 'student' ? '🎓 Студент' : '📚 Абитуриент' %>
+								</span>
+							</td>
+							<td style="padding: 0.5rem;">
+								<form action="/admin/users/<%= u.id %>/role" method="POST" style="display: flex; gap: 0.5rem; align-items: center;">
+									<select name="role" class="form-input" style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.875rem;">
+										<option value="applicant" <%= u.role === 'applicant' ? 'selected' : '' %>>Абитуриент</option>
+										<option value="student" <%= u.role === 'student' ? 'selected' : '' %>>Студент</option>
+										<option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>Админ</option>
+									</select>
+									<button type="submit" class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">Сохранить</button>
+								</form>
+							</td>
+						</tr>
+					<% }); %>
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+
+<!-- ТАБ: АДМИНИСТРАТОРЫ -->
+<div id="section-admins" style="display:none;">
+	<div class="grid grid-2">
+		<div class="card">
+			<h2>👑 Назначить администратора</h2>
+			<p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">
+				Вставьте ссылку на профиль пользователя (например: <code>/user/5</code> или полный URL)
+			</p>
+			<form action="/admin/make-admin" method="POST">
+				<div class="form-group">
+					<label class="form-label">Ссылка на профиль пользователя</label>
+					<input type="text" name="profile_url" class="form-input" required
+						placeholder="https://сайт.ru/user/5  или  /user/5">
+				</div>
+				<button type="submit" class="btn btn-primary">👑 Назначить администратором</button>
+			</form>
+
+			<div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+				<h3 style="margin-bottom: 0.75rem;">Или по Email</h3>
+				<form action="/admin/make-admin-by-email" method="POST">
+					<div class="form-group">
+						<label class="form-label">Email пользователя</label>
+						<input type="email" name="email" class="form-input" required placeholder="user@example.com">
+					</div>
+					<button type="submit" class="btn btn-outline">👑 Назначить по email</button>
+				</form>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2>👑 Текущие администраторы (<%= admins.length %>)</h2>
+			<% if (admins.length === 0) { %>
+				<p style="color: var(--text-secondary);">Нет администраторов</p>
+			<% } %>
+			<% admins.forEach(admin => { %>
+				<div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
+					<div style="display: flex; align-items: center; gap: 0.75rem;">
+						<img src="<%= admin.avatar %>" alt="" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #A78BFA;">
+						<div>
+							<strong><a href="/user/<%= admin.id %>" style="color: inherit; text-decoration: none;"><%= admin.full_name %></a></strong>
+							<p style="color: var(--text-secondary); font-size: 0.8rem;"><%= admin.email %></p>
+						</div>
+					</div>
+					<% if (admin.id !== user.id) { %>
+						<form action="/admin/users/<%= admin.id %>/role" method="POST" onsubmit="return confirm('Снять права администратора у <%= admin.full_name %>?')">
+							<input type="hidden" name="role" value="applicant">
+							<button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">Снять</button>
+						</form>
+					<% } else { %>
+						<span style="color: var(--text-secondary); font-size: 0.8rem;">Это вы</span>
+					<% } %>
+				</div>
+			<% }); %>
+		</div>
+	</div>
+</div>
+
+<script>
+function showTab(name) {
+	['universities', 'faculties', 'users', 'admins'].forEach(t => {
+		document.getElementById('section-' + t).style.display = t === name ? 'block' : 'none';
+		const btn = document.getElementById('tab-' + t);
+		if (t === name) {
+			btn.style.color = 'var(--primary-color)';
+			btn.style.fontWeight = '600';
+			btn.style.borderBottom = '3px solid var(--primary-color)';
+			btn.style.marginBottom = '-2px';
+		} else {
+			btn.style.color = 'var(--text-secondary)';
+			btn.style.fontWeight = '500';
+			btn.style.borderBottom = 'none';
+			btn.style.marginBottom = '0';
+		}
+	});
+}
+
+function filterUsers() {
+	const q = document.getElementById('userSearch').value.toLowerCase();
+	document.querySelectorAll('.user-row').forEach(row => {
+		const name = row.querySelector('.user-name').textContent.toLowerCase();
+		const email = row.querySelector('.user-email').textContent.toLowerCase();
+		row.style.display = (name.includes(q) || email.includes(q)) ? '' : 'none';
+	});
+}
+
+// Показать нужный таб если есть хэш
+const hash = window.location.hash.replace('#', '');
+if (['universities','faculties','users','admins'].includes(hash)) showTab(hash);
+</script>

@@ -1,0 +1,29 @@
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+	<h1>✏️ Редактировать факультет</h1>
+	<a href="/admin#faculties" class="btn btn-outline">← Назад</a>
+</div>
+
+<div class="card" style="max-width: 600px;">
+	<form action="/admin/faculties/<%= faculty.id %>/edit" method="POST">
+		<div class="form-group">
+			<label class="form-label">Вуз *</label>
+			<select name="university_id" class="form-input" required>
+				<% universities.forEach(u => { %>
+					<option value="<%= u.id %>" <%= u.id === faculty.university_id ? 'selected' : '' %>><%= u.name %></option>
+				<% }); %>
+			</select>
+		</div>
+		<div class="form-group">
+			<label class="form-label">Название факультета *</label>
+			<input type="text" name="name" class="form-input" required value="<%= faculty.name %>">
+		</div>
+		<div class="form-group">
+			<label class="form-label">Описание</label>
+			<textarea name="description" class="form-input" rows="6" placeholder="Специальности, кафедры, направления подготовки..."><%= faculty.description || '' %></textarea>
+		</div>
+		<div style="display: flex; gap: 1rem;">
+			<button type="submit" class="btn btn-primary">💾 Сохранить изменения</button>
+			<a href="/admin#faculties" class="btn btn-outline">Отмена</a>
+		</div>
+	</form>
+</div>
