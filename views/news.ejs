@@ -1,0 +1,47 @@
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+  <h1>📰 Новости</h1>
+  <% if (locals.user && (user.role === 'reporter' || user.role === 'admin')) { %>
+    <a href="/news/create" class="btn btn-primary">✍️ Написать новость</a>
+  <% } %>
+</div>
+
+<% if (newsList.length === 0) { %>
+  <div class="card" style="text-align:center;padding:3rem;">
+    <p style="font-size:1.5rem;margin-bottom:0.5rem;">📭</p>
+    <p style="color:var(--text-secondary);">Новостей пока нет</p>
+    <% if (locals.user && (user.role === 'reporter' || user.role === 'admin')) { %>
+      <a href="/news/create" class="btn btn-primary" style="margin-top:1rem;">Написать первую новость</a>
+    <% } %>
+  </div>
+<% } %>
+
+<div style="display:flex;flex-direction:column;gap:1.25rem;">
+  <% newsList.forEach(article => { %>
+    <div class="card" style="display:flex;gap:1.5rem;align-items:flex-start;">
+      <% if (article.image_url) { %>
+        <img src="<%= article.image_url %>" alt=""
+             style="width:140px;height:100px;object-fit:cover;border-radius:0.5rem;flex-shrink:0;">
+      <% } %>
+      <div style="flex:1;min-width:0;">
+        <h2 style="margin-bottom:0.4rem;">
+          <a href="/news/<%= article.id %>" style="color:inherit;text-decoration:none;"><%= article.title %></a>
+        </h2>
+        <p style="color:var(--text-secondary);margin-bottom:0.6rem;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">
+          <%= article.content.substring(0, 200) %><%= article.content.length > 200 ? '…' : '' %>
+        </p>
+        <div style="display:flex;align-items:center;gap:0.75rem;font-size:0.85rem;color:var(--text-secondary);">
+          <img src="<%= article.author_avatar %>" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;">
+          <a href="/user/<%= article.author_id %>" style="color:inherit;text-decoration:none;"><%= article.author_name %></a>
+          <span>·</span>
+          <span><%= new Date(article.created_at).toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'}) %></span>
+          <% if (locals.user && (user.role === 'admin' || (user.role === 'reporter' && user.id === article.author_id))) { %>
+            <form action="/news/<%= article.id %>/delete" method="POST" style="margin-left:auto;"
+                  onsubmit="return confirm('Удалить эту новость?')">
+              <button type="submit" class="btn btn-danger" style="padding:0.2rem 0.6rem;font-size:0.75rem;">🗑 Удалить</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  <% }); %>
+</div>

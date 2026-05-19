@@ -1,50 +1,42 @@
-const initSqlJs = require('sql.js');
-const fs = require('fs');
-const path = require('path');
-const bcrypt = require('bcryptjs');
+/**
+ * Скрипт создания/обновления администратора
+ * Запуск: node createadmin.js
+ * На Render: выполнить в Shell сервиса
+ */
+require('dotenv').config();
+const { Pool }  = require('pg');
+const bcrypt    = require('bcryptjs');
 
-const DB_PATH = path.join(__dirname, 'unitalk.db');
+const EMAIL     = process.env.ADMIN_EMAIL    || 'admin@unitalk.ru';
+const PASSWORD  = process.env.ADMIN_PASSWORD || 'UniTalk@Admin2025';
+const FULL_NAME = 'Администратор';
 
-async function createAdmin() {
-  const SQL = await initSqlJs();
-  
-  let db;
-  if (fs.existsSync(DB_PATH)) {
-    const fileBuffer = fs.readFileSync(DB_PATH);
-    db = new SQL.Database(fileBuffer);
+async function main() {
+  if (!process.env.DATABASE_URL) {
+    console.error('❌ DATABASE_URL не задан. Добавьте в .env или передайте через переменную окружения.');
+    process.exit(1);
+  }
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL.includes('render.com') ? { rejectUnauthorized: false } : false,
+  });
+
+  const hash = await bcrypt.hash(PASSWORD, 10);
+
+  // Try to update existing user first, else insert
+  const existing = await pool.query('SELECT id FROM users WHERE email=$1', [EMAIL]).then(r=>r.rows[0]);
+  if (existing) {
+    await pool.query('UPDATE users SET password=$1, role=$2 WHERE email=$3', [hash, 'admin', EMAIL]);
+    console.log(`✅ Пароль и роль обновлены для ${EMAIL}`);
   } else {
-    db = new SQL.Database();
-    // Создаем таблицу users, если её нет
-    db.run(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        role TEXT NOT NULL CHECK(role IN ('applicant', 'student', 'admin')),
-        full_name TEXT NOT NULL,
-        avatar TEXT DEFAULT '/avatars/default.png',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-  }
-
-  const hashedPassword = await bcrypt.hash('admin123', 10);
-
-  try {
-    db.run(
-      'INSERT INTO users (email, password, full_name, role) VALUES (?, ?, ?, ?)',
-      ['admin@unitalk.ru', hashedPassword, 'Администратор', 'admin']
+    await pool.query(
+      'INSERT INTO users (email,password,full_name,role) VALUES ($1,$2,$3,$4)',
+      [EMAIL, hash, FULL_NAME, 'admin']
     );
-    
-    // Сохраняем БД
-    const data = db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(DB_PATH, buffer);
-    
-    console.log('Админ создан: admin@unitalk.ru / admin123');
-  } catch (error) {
-    console.log('Ошибка:', error.message);
+    console.log(`✅ Администратор создан: ${EMAIL}`);
   }
+  console.log(`🔑 Пароль: ${PASSWORD}`);
+  await pool.end();
 }
 
-createAdmin();
+main().catch(err => { console.error('❌', err.message); process.exit(1); });

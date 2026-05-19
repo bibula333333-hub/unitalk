@@ -15,6 +15,7 @@
 		<p><strong>Роль:</strong>
 			<% if (user.role === 'admin') { %>👑 Администратор
 			<% } else if (user.role === 'student') { %>🎓 Студент
+			<% } else if (user.role === 'reporter') { %>📰 Репортёр
 			<% } else { %>📚 Абитуриент<% } %>
 		</p>
 
@@ -80,6 +81,17 @@
 
 				<button type="submit" class="btn btn-primary">Сохранить</button>
 			</form>
+		</div>
+	<% } %>
+
+	<% if (user.role === 'reporter') { %>
+		<div class="card">
+			<h2>📰 Панель репортёра</h2>
+			<p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">Создавайте новости и управляйте своими публикациями</p>
+			<div style="display: flex; flex-direction: column; gap: 0.75rem;">
+				<a href="/news/create" class="btn btn-primary" style="text-align: center;">✍️ Написать новость</a>
+				<a href="/news" class="btn btn-outline" style="text-align: center;">📰 Все новости</a>
+			</div>
 		</div>
 	<% } %>
 

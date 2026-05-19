@@ -1,3 +1,4 @@
+require('dotenv').config();
 // v3.0 — PostgreSQL + full chat + DB reset
 const express    = require('express');
 const http       = require('http');
@@ -43,7 +44,7 @@ async function initDB() {
       id          SERIAL PRIMARY KEY,
       email       TEXT UNIQUE NOT NULL,
       password    TEXT NOT NULL,
-      role        TEXT NOT NULL CHECK(role IN ('applicant','student','admin')),
+      role        TEXT NOT NULL CHECK(role IN ('applicant','student','reporter','admin')),
       full_name   TEXT NOT NULL,
       avatar      TEXT DEFAULT '/avatars/default.png',
       created_at  TIMESTAMPTZ DEFAULT NOW()
@@ -96,6 +97,15 @@ async function initDB() {
       is_read    INTEGER DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS news (
+      id          SERIAL PRIMARY KEY,
+      author_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title       TEXT NOT NULL,
+      content     TEXT NOT NULL,
+      image_url   TEXT,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_news_author ON news(author_id);
     CREATE INDEX IF NOT EXISTS idx_msg_chat   ON messages(chat_id);
     CREATE INDEX IF NOT EXISTS idx_rev_uni    ON reviews(university_id);
     CREATE INDEX IF NOT EXISTS idx_chat_a     ON chats(user_a_id);
@@ -193,11 +203,13 @@ app.post('/register', async (req, res) => {
   if (await dbGet('SELECT id FROM users WHERE email=?', [email]))
     return res.render('register', { error: 'Email уже зарегистрирован' });
   const hash = await bcrypt.hash(password, 10);
+  // Only allow reporter/admin roles via admin panel — public registration limited to applicant/student
+  const safeRole = ['applicant','student'].includes(role) ? role : 'applicant';
   const { lastInsertRowid: id } = await dbRun(
     'INSERT INTO users (email,password,full_name,role) VALUES (?,?,?,?)',
-    [email, hash, full_name, role]
+    [email, hash, full_name, safeRole]
   );
-  const token = jwt.sign({ id, email, role }, JWT_SECRET, { expiresIn: '7d' });
+  const token = jwt.sign({ id, email, role: safeRole }, JWT_SECRET, { expiresIn: '7d' });
   res.cookie('token', token, { httpOnly: true, maxAge: 7*24*60*60*1000 });
   res.redirect('/');
 });
@@ -359,12 +371,52 @@ app.get('/chats/:id', auth(), async (req, res) => {
   res.render('chat', { chat, partner, messages });
 });
 
+
+// ── News ──────────────────────────────────────────────────────────────────────
+app.get('/news', async (req, res) => {
+  const newsList = await dbAll(`
+    SELECT n.*, u.full_name AS author_name, u.avatar AS author_avatar, u.role AS author_role
+    FROM news n JOIN users u ON n.author_id=u.id
+    ORDER BY n.created_at DESC`);
+  res.render('news', { newsList });
+});
+
+app.get('/news/create', auth(['reporter','admin']), (req, res) => {
+  res.render('news-create', { error: null });
+});
+
+app.post('/news/create', auth(['reporter','admin']), upload.single('image'), async (req, res) => {
+  const { title, content } = req.body;
+  const image_url = req.file ? `/avatars/${req.file.filename}` : null;
+  await pool.query(
+    'INSERT INTO news (author_id, title, content, image_url) VALUES ($1,$2,$3,$4)',
+    [req.user.id, title, content, image_url]
+  );
+  res.redirect('/news');
+});
+
+app.post('/news/:id/delete', auth(['reporter','admin']), async (req, res) => {
+  const article = await dbGet('SELECT * FROM news WHERE id=?', [req.params.id]);
+  if (article && (req.user.role === 'admin' || article.author_id === req.user.id)) {
+    await pool.query('DELETE FROM news WHERE id=$1', [req.params.id]);
+  }
+  res.redirect('/news');
+});
+
+app.get('/news/:id', async (req, res) => {
+  const article = await dbGet(`
+    SELECT n.*, u.full_name AS author_name, u.avatar AS author_avatar, u.role AS author_role
+    FROM news n JOIN users u ON n.author_id=u.id WHERE n.id=?`, [req.params.id]);
+  if (!article) return res.status(404).send('Новость не найдена');
+  res.render('news-article', { article });
+});
+
 // ── Admin helpers ─────────────────────────────────────────────────────────────
 async function adminData() {
   const [universities, users, admins, faculties,
          uC, unC, rC, cC] = await Promise.all([
     dbAll('SELECT * FROM universities ORDER BY name'),
-    dbAll('SELECT * FROM users ORDER BY created_at DESC'),
+    dbAll("SELECT * FROM users ORDER BY created_at DESC"),
     dbAll("SELECT * FROM users WHERE role='admin' ORDER BY full_name"),
     dbAll('SELECT f.*,u.name AS university_name FROM faculties f LEFT JOIN universities u ON f.university_id=u.id ORDER BY u.name,f.name'),
     dbGet('SELECT COUNT(*) AS count FROM users'),

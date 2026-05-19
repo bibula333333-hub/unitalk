@@ -193,17 +193,18 @@
 							<td style="padding: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;"><%= new Date(u.created_at).toLocaleDateString('ru-RU') %></td>
 							<td style="padding: 0.5rem;">
 								<span style="padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.8rem;
-									background: <%= u.role === 'admin' ? '#EDE9FE' : u.role === 'student' ? '#D1FAE5' : '#FEF3C7' %>;
-									color: <%= u.role === 'admin' ? '#5B21B6' : u.role === 'student' ? '#065F46' : '#92400E' %>;">
-									<%= u.role === 'admin' ? '👑 Админ' : u.role === 'student' ? '🎓 Студент' : '📚 Абитуриент' %>
+									background: <%= u.role === 'admin' ? '#EDE9FE' : u.role === 'reporter' ? '#FEF3C7' : u.role === 'student' ? '#D1FAE5' : '#E0F2FE' %>;
+									color: <%= u.role === 'admin' ? '#5B21B6' : u.role === 'reporter' ? '#92400E' : u.role === 'student' ? '#065F46' : '#0C4A6E' %>;">
+									<%= u.role === 'admin' ? '👑 Админ' : u.role === 'reporter' ? '📰 Репортёр' : u.role === 'student' ? '🎓 Студент' : '📚 Абитуриент' %>
 								</span>
 							</td>
 							<td style="padding: 0.5rem;">
 								<form action="/admin/users/<%= u.id %>/role" method="POST" style="display: flex; gap: 0.5rem; align-items: center;">
 									<select name="role" class="form-input" style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.875rem;">
-										<option value="applicant" <%= u.role === 'applicant' ? 'selected' : '' %>>Абитуриент</option>
-										<option value="student" <%= u.role === 'student' ? 'selected' : '' %>>Студент</option>
-										<option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>Админ</option>
+										<option value="applicant" <%= u.role === 'applicant' ? 'selected' : '' %>>📚 Абитуриент</option>
+										<option value="student" <%= u.role === 'student' ? 'selected' : '' %>>🎓 Студент</option>
+										<option value="reporter" <%= u.role === 'reporter' ? 'selected' : '' %>>📰 Репортёр</option>
+										<option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>👑 Админ</option>
 									</select>
 									<button type="submit" class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">Сохранить</button>
 								</form>
