@@ -1,1 +1,53 @@
-<div style="max-width: 800px; margin: 0 auto;">     <a href="javascript:history.back()" style="color: var(--primary-color); text-decoration: none;">← Назад</a>          <div class="card" style="margin-top: 1rem; text-align: center;">         <img src="<%= profileUser.avatar %>" alt="Avatar"               style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 1rem;">         <h1><%= profileUser.full_name %></h1> 			<% if (locals.user && user.role === 'admin') { %> 			<div style="margin-top: 0.5rem;"> 				<form action="/admin/users/" 					<%= profileUser.id %>/role" method="POST" style="display: inline;"> 					<select name="role" style="padding: 0.25rem; border-radius: 0.25rem;"> 						<option value="applicant" 							<%= profileUser.role === 'applicant' ? 'selected' : '' %>>Абитуриент 						</option> 						<option value="student" 							<%= profileUser.role === 'student' ? 'selected' : '' %>>Студент 						</option> 						<option value="admin" 							<%= profileUser.role === 'admin' ? 'selected' : '' %>>Админ 						</option> 					</select> 					<button type="submit" class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Сменить роль</button> 				</form> 			</div> 			<% } %>                  <% if (profileUser.role === 'student' && studentProfile) { %>             <div style="margin-top: 1.5rem; text-align: left;">                 <% if (studentProfile.university_name) { %>                     <p><strong>Вуз:</strong> <%= studentProfile.university_name %></p>                 <% } %>                 <% if (studentProfile.faculty_name) { %>                     <p><strong>Факультет:</strong> <%= studentProfile.faculty_name %></p>                 <% } %>                 <% if (studentProfile.course) { %>                     <p><strong>Курс:</strong> <%= studentProfile.course %></p>                 <% } %>                 <% if (studentProfile.graduation_year) { %>                     <p><strong>Год выпуска:</strong> <%= studentProfile.graduation_year %></p>                 <% } %>                 <% if (studentProfile.bio) { %>                     <p style="margin-top: 1rem;"><strong>О себе:</strong></p>                     <p><%= studentProfile.bio %></p>                 <% } %>             </div>         <% } %>                  <% if (locals.user && locals.user.id !== profileUser.id) { %>             <div style="margin-top: 1.5rem;">                 <a href="/chats/start/<%= profileUser.id %>" class="btn btn-primary">✉️ Написать сообщение</a>             </div>         <% } %>                  <% if (locals.user && locals.user.id === profileUser.id) { %>             <div style="margin-top: 1.5rem;">                 <a href="/profile" class="btn btn-outline">✏️ Редактировать профиль</a>             </div>         <% } %>                  <p style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-secondary);">             На сайте с <%= new Date(profileUser.created_at).toLocaleDateString('ru-RU') %>         </p>     </div> </div>
+<div style="max-width:800px;margin:0 auto;">
+  <a href="javascript:history.back()" style="color:var(--primary-color);text-decoration:none;">← Назад</a>
+
+  <div class="card" style="margin-top:1rem;text-align:center;">
+    <img src="<%= profileUser.avatar %>" alt="Avatar"
+         style="width:120px;height:120px;border-radius:50%;object-fit:cover;margin-bottom:1rem;border:3px solid var(--primary-color);">
+    <h1><%= profileUser.full_name %></h1>
+    <p style="color:var(--text-secondary);">
+      <%= profileUser.role === 'admin' ? '👑 Администратор' : profileUser.role === 'student' ? '🎓 Студент' : '📚 Абитуриент' %>
+    </p>
+
+    <% if (locals.user && user.role === 'admin') { %>
+      <div style="margin-top:0.75rem;">
+        <form action="/admin/users/<%= profileUser.id %>/role" method="POST" style="display:inline-flex;gap:0.5rem;align-items:center;">
+          <select name="role" class="form-input" style="width:auto;padding:0.25rem 0.5rem;font-size:0.85rem;">
+            <option value="applicant" <%= profileUser.role==='applicant'?'selected':'' %>>Абитуриент</option>
+            <option value="student"   <%= profileUser.role==='student'  ?'selected':'' %>>Студент</option>
+            <option value="admin"     <%= profileUser.role==='admin'    ?'selected':'' %>>Админ</option>
+          </select>
+          <button type="submit" class="btn btn-outline" style="padding:0.25rem 0.75rem;font-size:0.8rem;">Сменить роль</button>
+        </form>
+      </div>
+    <% } %>
+
+    <% if (profileUser.role === 'student' && studentProfile) { %>
+      <div style="margin-top:1.5rem;text-align:left;border-top:1px solid var(--border-color);padding-top:1rem;">
+        <% if (studentProfile.university_name) { %><p><strong>🏫 Вуз:</strong> <%= studentProfile.university_name %></p><% } %>
+        <% if (studentProfile.faculty_name)    { %><p><strong>📚 Факультет:</strong> <%= studentProfile.faculty_name %></p><% } %>
+        <% if (studentProfile.course)          { %><p><strong>📖 Курс:</strong> <%= studentProfile.course %></p><% } %>
+        <% if (studentProfile.graduation_year) { %><p><strong>🎓 Год выпуска:</strong> <%= studentProfile.graduation_year %></p><% } %>
+        <% if (studentProfile.bio) { %>
+          <p style="margin-top:0.75rem;"><strong>О себе:</strong></p>
+          <p><%= studentProfile.bio %></p>
+        <% } %>
+      </div>
+    <% } %>
+
+    <div style="margin-top:1.5rem;display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+      <% if (locals.user && locals.user.id !== profileUser.id) { %>
+        <form action="/chats/start/<%= profileUser.id %>" method="POST">
+          <button type="submit" class="btn btn-primary">✉️ Написать сообщение</button>
+        </form>
+      <% } %>
+      <% if (locals.user && locals.user.id === profileUser.id) { %>
+        <a href="/profile" class="btn btn-outline">✏️ Редактировать профиль</a>
+      <% } %>
+    </div>
+
+    <p style="margin-top:1.5rem;font-size:0.875rem;color:var(--text-secondary);">
+      На сайте с <%= new Date(profileUser.created_at).toLocaleDateString('ru-RU') %>
+    </p>
+  </div>
+</div>

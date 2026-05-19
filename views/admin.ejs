@@ -305,3 +305,23 @@ function filterUsers() {
 const hash = window.location.hash.replace('#', '');
 if (['universities','faculties','users','admins'].includes(hash)) showTab(hash);
 </script>
+
+<!-- ══════════════ КНОПКА СБРОСА БД ══════════════ -->
+<div style="margin-top:3rem;padding:1.5rem;border:2px solid #EF4444;border-radius:0.75rem;background:#FFF5F5;">
+  <h2 style="color:#DC2626;margin-bottom:0.5rem;">🗑️ Сброс базы данных</h2>
+  <p style="color:#7F1D1D;margin-bottom:1rem;">
+    <strong>Внимание!</strong> Это действие удалит <strong>всех пользователей, вузы, отзывы, чаты и сообщения</strong>.
+    Ваш аккаунт администратора будет сохранён. Действие <strong>необратимо</strong>.
+  </p>
+  <form action="/admin/reset-db" method="POST"
+        onsubmit="return document.getElementById('resetConfirmInput').value === 'УДАЛИТЬ' || (alert('Введите УДАЛИТЬ для подтверждения') || false)">
+    <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+      <input type="text" name="confirm" id="resetConfirmInput" class="form-input"
+             placeholder='Введите слово УДАЛИТЬ'
+             style="max-width:280px;border-color:#EF4444;">
+      <button type="submit" class="btn btn-danger" style="white-space:nowrap;">
+        💣 Полностью очистить базу данных
+      </button>
+    </div>
+  </form>
+</div>
