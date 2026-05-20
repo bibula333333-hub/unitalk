@@ -11,22 +11,22 @@
 <% } %>
 
 <!-- Статистика -->
-<div class="admin-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
-	<div class="stat-card card" style="text-align: center;">
-		<div class="stat-number" style="font-size: 2rem; font-weight: 700; color: var(--primary-color);"><%= stats.totalUsers %></div>
-		<div class="stat-label" style="color: var(--text-secondary);">👤 Пользователей</div>
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+	<div style="background:#EEF2FF;border-radius:0.75rem;padding:1.25rem;text-align:center;border:2px solid #C7D2FE;">
+		<div style="font-size:2.25rem;font-weight:800;color:#3730A3;line-height:1;"><%- stats.totalUsers %></div>
+		<div style="color:#4338CA;font-weight:600;margin-top:0.4rem;font-size:0.9rem;">👤 Пользователей</div>
 	</div>
-	<div class="stat-card card" style="text-align: center;">
-		<div class="stat-number" style="font-size: 2rem; font-weight: 700; color: var(--primary-color);"><%= stats.totalUniversities %></div>
-		<div class="stat-label" style="color: var(--text-secondary);">🏫 Вузов</div>
+	<div style="background:#F0FDF4;border-radius:0.75rem;padding:1.25rem;text-align:center;border:2px solid #BBF7D0;">
+		<div style="font-size:2.25rem;font-weight:800;color:#14532D;line-height:1;"><%- stats.totalUniversities %></div>
+		<div style="color:#166534;font-weight:600;margin-top:0.4rem;font-size:0.9rem;">🏫 Вузов</div>
 	</div>
-	<div class="stat-card card" style="text-align: center;">
-		<div class="stat-number" style="font-size: 2rem; font-weight: 700; color: var(--primary-color);"><%= stats.totalReviews %></div>
-		<div class="stat-label" style="color: var(--text-secondary);">📝 Отзывов</div>
+	<div style="background:#FFF7ED;border-radius:0.75rem;padding:1.25rem;text-align:center;border:2px solid #FED7AA;">
+		<div style="font-size:2.25rem;font-weight:800;color:#7C2D12;line-height:1;"><%- stats.totalReviews %></div>
+		<div style="color:#9A3412;font-weight:600;margin-top:0.4rem;font-size:0.9rem;">📝 Отзывов</div>
 	</div>
-	<div class="stat-card card" style="text-align: center;">
-		<div class="stat-number" style="font-size: 2rem; font-weight: 700; color: var(--primary-color);"><%= stats.totalChats %></div>
-		<div class="stat-label" style="color: var(--text-secondary);">💬 Чатов</div>
+	<div style="background:#FDF4FF;border-radius:0.75rem;padding:1.25rem;text-align:center;border:2px solid #E9D5FF;">
+		<div style="font-size:2.25rem;font-weight:800;color:#581C87;line-height:1;"><%- stats.totalChats %></div>
+		<div style="color:#6B21A8;font-weight:600;margin-top:0.4rem;font-size:0.9rem;">💬 Чатов</div>
 	</div>
 </div>
 

@@ -2,9 +2,15 @@
   <div class="nav-container">
     <a href="/" class="nav-logo">🎓 UniTalk</a>
     <div class="nav-links">
-      <a href="/news"         class="nav-link">📰 Новости</a>
+      <a href="/news" class="nav-link nav-badge-wrap" id="nav-news">
+        📰 Новости
+        <span class="nav-badge" id="badge-news" style="display:none;">0</span>
+      </a>
       <a href="/universities" class="nav-link">🏫 Вузы</a>
-      <a href="/chats"        class="nav-link">💬 Чаты</a>
+      <a href="/chats" class="nav-link nav-badge-wrap" id="nav-chats">
+        💬 Чаты
+        <span class="nav-badge" id="badge-chats" style="display:none;">0</span>
+      </a>
       <% if (typeof user !== 'undefined' && user) { %>
         <% if (user.role === 'admin') { %>
           <a href="/admin" class="nav-link">⚙️ Админ</a>

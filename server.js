@@ -80,8 +80,14 @@ async function initDB() {
       rating        INTEGER CHECK(rating BETWEEN 1 AND 5),
       content       TEXT NOT NULL,
       is_anonymous  INTEGER DEFAULT 0,
+      moderation_status TEXT DEFAULT 'pending' CHECK(moderation_status IN ('pending','approved')),
       created_at    TIMESTAMPTZ DEFAULT NOW()
     );
+    -- Migration: add moderation_status if missing
+    DO $$ BEGIN
+      ALTER TABLE reviews ADD COLUMN IF NOT EXISTS moderation_status TEXT DEFAULT 'pending'
+        CHECK(moderation_status IN ('pending','approved'));
+    EXCEPTION WHEN others THEN NULL; END $$;
     CREATE TABLE IF NOT EXISTS chats (
       id           SERIAL PRIMARY KEY,
       user_a_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -411,6 +417,49 @@ app.get('/news/:id', async (req, res) => {
   res.render('news-article', { article });
 });
 
+
+// ── Notification badges API ───────────────────────────────────────────────────
+app.get('/api/notifications', auth(), async (req, res) => {
+  const uid = req.user.id;
+  // Unread messages across all chats
+  const unreadMsgs = await pool.query(`
+    SELECT COUNT(*) AS count FROM messages m
+    JOIN chats c ON m.chat_id=c.id
+    WHERE (c.user_a_id=$1 OR c.user_b_id=$1)
+      AND m.sender_id!=$1 AND m.is_read=0
+  `, [uid]).then(r => parseInt(r.rows[0].count));
+
+  // Unread news (news published after user's last visit — we use a simple approach:
+  // count news newer than user's last seen news timestamp stored client-side)
+  // Since we don't track per-user news reads on server, return total unread via localStorage key on client
+  const latestNewsCount = await pool.query(`
+    SELECT COUNT(*) AS count FROM news WHERE created_at > NOW() - INTERVAL '7 days'
+  `).then(r => parseInt(r.rows[0].count));
+
+  res.json({ messages: unreadMsgs, news: latestNewsCount });
+});
+
+// ── Delete message ────────────────────────────────────────────────────────────
+app.delete('/messages/:id', auth(), async (req, res) => {
+  const msg = await dbGet('SELECT * FROM messages WHERE id=?', [req.params.id]);
+  if (!msg) return res.status(404).json({ error: 'Не найдено' });
+  // Any participant of the chat can delete any message in their chat
+  const chat = await dbGet('SELECT * FROM chats WHERE id=?', [msg.chat_id]);
+  if (!chat) return res.status(404).json({ error: 'Чат не найден' });
+  const uid = req.user.id;
+  if (chat.user_a_id !== uid && chat.user_b_id !== uid && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Нет доступа' });
+  }
+  await pool.query('DELETE FROM messages WHERE id=$1', [req.params.id]);
+  res.json({ ok: true, messageId: req.params.id, chatId: msg.chat_id });
+});
+
+// ── Review moderation ─────────────────────────────────────────────────────────
+app.post('/admin/reviews/:id/approve', auth(['admin']), async (req, res) => {
+  await pool.query("UPDATE reviews SET moderation_status='approved' WHERE id=$1", [req.params.id]);
+  res.redirect('/admin/reviews');
+});
+
 // ── Admin helpers ─────────────────────────────────────────────────────────────
 async function adminData() {
   const [universities, users, admins, faculties,
@@ -551,6 +600,10 @@ async function start() {
         [ins.rows[0].id]
       ).then(r=>r.rows[0]);
       io.to(`chat_${chatId}`).emit('new_message', msg);
+    });
+    // Broadcast message deletion to chat room
+    socket.on('delete_message', ({ messageId, chatId }) => {
+      io.to(`chat_${chatId}`).emit('message_deleted', { messageId });
     });
   });
 

@@ -1,37 +1,49 @@
 <style>
-.chat-wrap { display: flex; flex-direction: column; height: calc(100vh - 160px); min-height: 400px; }
-.chat-header { padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 1rem; flex-shrink: 0; }
-.chat-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
-.msg { max-width: 70%; padding: 0.6rem 0.9rem; border-radius: 1rem; font-size: 0.95rem; line-height: 1.4; word-break: break-word; }
-.msg-incoming { align-self: flex-start; background: var(--bg-secondary); border-bottom-left-radius: 0.2rem; }
-.msg-outgoing { align-self: flex-end; background: var(--primary-color); color: white; border-bottom-right-radius: 0.2rem; }
-.msg-meta { font-size: 0.72rem; opacity: 0.65; margin-bottom: 0.2rem; }
-.msg-outgoing .msg-meta { text-align: right; }
-.chat-form { display: flex; gap: 0.75rem; padding: 0.85rem 1rem; border-top: 1px solid var(--border-color); flex-shrink: 0; }
-.chat-form input { flex: 1; }
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 160px);min-height:420px;}
+.chat-hdr{padding:0.85rem 1.25rem;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:1rem;flex-shrink:0;border-radius:0.75rem 0.75rem 0 0;}
+.msg-box{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:0.65rem;}
+.msg-row{display:flex;flex-direction:column;}
+.msg-row.own{align-items:flex-end;}
+.msg-row.other{align-items:flex-start;}
+.msg-meta{font-size:0.7rem;color:var(--text-secondary);margin-bottom:0.18rem;display:flex;align-items:center;gap:0.4rem;}
+.msg-row.own .msg-meta{flex-direction:row-reverse;}
+.bubble{max-width:68%;padding:0.55rem 0.85rem;border-radius:1.1rem;font-size:0.95rem;line-height:1.5;word-break:break-word;display:flex;align-items:flex-end;gap:0.4rem;}
+.bubble-text{flex:1;}
+.bubble.incoming{background:var(--bg-secondary);border-bottom-left-radius:0.2rem;}
+.bubble.outgoing{background:var(--primary-color);color:white;border-bottom-right-radius:0.2rem;}
+.del-btn{opacity:0;transition:opacity 0.15s;background:none;border:none;cursor:pointer;font-size:0.8rem;padding:0.15rem;line-height:1;flex-shrink:0;border-radius:0.25rem;}
+.bubble.outgoing .del-btn{color:rgba(255,255,255,0.65);}
+.bubble.incoming .del-btn{color:#9CA3AF;}
+.bubble:hover .del-btn{opacity:1;}
+.del-btn:hover{background:rgba(0,0,0,0.12);}
+.chat-form{display:flex;gap:0.75rem;padding:0.85rem 1rem;border-top:1px solid var(--border-color);flex-shrink:0;border-radius:0 0 0.75rem 0.75rem;}
+.chat-form input{flex:1;}
 </style>
 
 <a href="/chats" style="color:var(--primary-color);text-decoration:none;display:block;margin-bottom:0.75rem;">← Назад к чатам</a>
 
 <div class="card chat-wrap" style="padding:0;">
-  <div class="chat-header">
-    <img src="<%= partner.avatar %>" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">
+  <div class="chat-hdr">
+    <img src="<%= partner.avatar %>" alt="" style="width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0;">
     <div>
       <strong><a href="/user/<%= partner.id %>" style="color:inherit;text-decoration:none;"><%= partner.full_name %></a></strong>
-      <p style="color:var(--text-secondary);font-size:0.8rem;margin:0;">
-        <%= partner.role === 'admin' ? '👑 Администратор' : partner.role === 'student' ? '🎓 Студент' : partner.role === 'reporter' ? '📰 Репортёр' : '📚 Абитуриент' %>
+      <p style="color:var(--text-secondary);font-size:0.78rem;margin:0;">
+        <%= partner.role==='admin'?'👑 Администратор':partner.role==='student'?'🎓 Студент':partner.role==='reporter'?'📰 Репортёр':'📚 Абитуриент' %>
       </p>
     </div>
   </div>
 
-  <div class="chat-messages" id="msgBox">
+  <div class="msg-box" id="msgBox">
     <% messages.forEach(m => { %>
-      <div>
-        <div class="msg-meta" style="<%= m.sender_id === user.id ? 'text-align:right;' : '' %>">
-          <%= m.sender_id === user.id ? 'Вы' : m.full_name %> · <%= new Date(m.created_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}) %>
+      <% const isOwn = m.sender_id === user.id; %>
+      <% const t = new Date(m.created_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}); %>
+      <div class="msg-row <%= isOwn?'own':'other' %>" id="msg-<%= m.id %>">
+        <div class="msg-meta">
+          <span><%= isOwn?'Вы':m.full_name %></span><span>·</span><span><%= t %></span>
         </div>
-        <div class="msg <%= m.sender_id === user.id ? 'msg-outgoing' : 'msg-incoming' %>">
-          <%- m.content.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>') %>
+        <div class="bubble <%= isOwn?'outgoing':'incoming' %>">
+          <span class="bubble-text"><%- m.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>') %></span>
+          <button class="del-btn" data-id="<%= m.id %>" title="Удалить сообщение">✕</button>
         </div>
       </div>
     <% }); %>
@@ -45,40 +57,69 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-(function() {
-  const CHAT_ID = <%= chat.id %>;
-  const USER_ID = <%= user.id %>;
-  const socket  = io();
-  const box     = document.getElementById('msgBox');
+const CHAT_ID = <%= chat.id %>;
+const USER_ID = <%= user.id %>;
+const box     = document.getElementById('msgBox');
+const socket  = io({ transports: ['websocket','polling'] });
 
-  socket.emit('join_chat', CHAT_ID);
+socket.emit('join_chat', CHAT_ID);
+box.scrollTop = box.scrollHeight;
+
+// ── Send ──────────────────────────────────────────────────────────────────────
+document.getElementById('chatForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const inp  = document.getElementById('msgInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  socket.emit('send_message', { chatId: CHAT_ID, senderId: USER_ID, content: text });
+  inp.value = '';
+  inp.focus();
+});
+
+// ── Receive new message ───────────────────────────────────────────────────────
+socket.on('new_message', function(msg) {
+  if (document.getElementById('msg-' + msg.id)) return;
+  const isOwn = msg.sender_id === USER_ID;
+  const t = new Date(msg.created_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  const safe = String(msg.content)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  const row = document.createElement('div');
+  row.className = 'msg-row ' + (isOwn ? 'own' : 'other');
+  row.id = 'msg-' + msg.id;
+  row.innerHTML = `
+    <div class="msg-meta">
+      <span>${isOwn ? 'Вы' : msg.full_name}</span><span>·</span><span>${t}</span>
+    </div>
+    <div class="bubble ${isOwn ? 'outgoing' : 'incoming'}">
+      <span class="bubble-text">${safe}</span>
+      <button class="del-btn" data-id="${msg.id}" title="Удалить сообщение">✕</button>
+    </div>`;
+  box.appendChild(row);
   box.scrollTop = box.scrollHeight;
+});
 
-  document.getElementById('chatForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const inp  = document.getElementById('msgInput');
-    const text = inp.value.trim();
-    if (!text) return;
-    socket.emit('send_message', { chatId: CHAT_ID, senderId: USER_ID, content: text });
-    inp.value = '';
-    inp.focus();
-  });
+// ── Receive deletion from partner ─────────────────────────────────────────────
+socket.on('message_deleted', function({ messageId }) {
+  const el = document.getElementById('msg-' + messageId);
+  if (el) { el.style.transition = 'opacity 0.2s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 200); }
+});
 
-  socket.on('new_message', function(msg) {
-    const isOwn = msg.sender_id === USER_ID;
-    const time  = new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
-    const safe  = msg.content.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-    const html  = `
-      <div>
-        <div class="msg-meta" style="${isOwn ? 'text-align:right;' : ''}">${isOwn ? 'Вы' : msg.full_name} · ${time}</div>
-        <div class="msg ${isOwn ? 'msg-outgoing' : 'msg-incoming'}">${safe}</div>
-      </div>`;
-    box.insertAdjacentHTML('beforeend', html);
-    box.scrollTop = box.scrollHeight;
-  });
-
-  socket.on('connect_error', function() {
-    console.warn('Socket.IO не подключён — сообщения не обновятся в реальном времени');
-  });
-})();
+// ── Delete button handler (event delegation) ──────────────────────────────────
+box.addEventListener('click', async function(e) {
+  const btn = e.target.closest('.del-btn');
+  if (!btn) return;
+  const msgId = btn.dataset.id;
+  if (!confirm('Удалить это сообщение?')) return;
+  try {
+    const res = await fetch('/messages/' + msgId, { method: 'DELETE' });
+    if (res.ok) {
+      socket.emit('delete_message', { messageId: parseInt(msgId), chatId: CHAT_ID });
+      const el = document.getElementById('msg-' + msgId);
+      if (el) { el.style.transition = 'opacity 0.2s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 200); }
+    } else {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || 'Не удалось удалить сообщение');
+    }
+  } catch(err) { alert('Ошибка сети'); }
+});
 </script>
