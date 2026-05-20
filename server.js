@@ -41,14 +41,19 @@ async function dbRun(sql, p = [])  {
 async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
-      id          SERIAL PRIMARY KEY,
-      email       TEXT UNIQUE NOT NULL,
-      password    TEXT NOT NULL,
-      role        TEXT NOT NULL CHECK(role IN ('applicant','student','reporter','admin')),
-      full_name   TEXT NOT NULL,
-      avatar      TEXT DEFAULT '/avatars/default.png',
-      created_at  TIMESTAMPTZ DEFAULT NOW()
+      id            SERIAL PRIMARY KEY,
+      email         TEXT UNIQUE NOT NULL,
+      password      TEXT NOT NULL,
+      role          TEXT NOT NULL CHECK(role IN ('applicant','student','reporter','admin')),
+      full_name     TEXT NOT NULL,
+      avatar        TEXT DEFAULT '/avatars/default.png',
+      is_main_admin BOOLEAN DEFAULT FALSE,
+      created_at    TIMESTAMPTZ DEFAULT NOW()
     );
+    -- Migration: add is_main_admin if missing
+    DO $$ BEGIN
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_main_admin BOOLEAN DEFAULT FALSE;
+    EXCEPTION WHEN others THEN NULL; END $$;
     CREATE TABLE IF NOT EXISTS universities (
       id          SERIAL PRIMARY KEY,
       name        TEXT NOT NULL,
@@ -523,7 +528,17 @@ app.post('/admin/faculties/:id/delete', auth(['admin']), async (req, res) => {
 });
 
 app.post('/admin/users/:id/role', auth(['admin']), async (req, res) => {
-  await pool.query('UPDATE users SET role=$1 WHERE id=$2', [req.body.role, req.params.id]);
+  const target = await dbGet('SELECT * FROM users WHERE id=?', [req.params.id]);
+  // Главный админ защищён — никто не может сменить ему роль
+  if (target && target.is_main_admin) {
+    return res.render('admin', { ...(await adminData()), error: '🔒 Невозможно изменить роль Главного администратора', success: null });
+  }
+  // Обычный админ не может назначать других главными или снимать флаг
+  const newRole = req.body.role;
+  if (!['applicant','student','reporter','admin'].includes(newRole)) {
+    return res.redirect('/admin#users');
+  }
+  await pool.query('UPDATE users SET role=$1 WHERE id=$2', [newRole, req.params.id]);
   res.redirect('/admin#users');
 });
 
@@ -532,6 +547,7 @@ app.post('/admin/make-admin', auth(['admin']), async (req, res) => {
   if (!match) return res.render('admin', { ...(await adminData()), error: 'Неверная ссылка. Формат: /user/5', success: null });
   const target = await dbGet('SELECT * FROM users WHERE id=?', [parseInt(match[1])]);
   if (!target) return res.render('admin', { ...(await adminData()), error: `Пользователь #${match[1]} не найден`, success: null });
+  if (target.is_main_admin) return res.render('admin', { ...(await adminData()), error: 'Этот пользователь уже является Главным администратором', success: null });
   await pool.query('UPDATE users SET role=$1 WHERE id=$2', ['admin', target.id]);
   res.render('admin', { ...(await adminData()), success: `${target.full_name} назначен администратором`, error: null });
 });
@@ -540,6 +556,7 @@ app.post('/admin/make-admin-by-email', auth(['admin']), async (req, res) => {
   const email  = (req.body.email||'').trim().toLowerCase();
   const target = await pool.query('SELECT * FROM users WHERE LOWER(email)=$1', [email]).then(r=>r.rows[0]);
   if (!target) return res.render('admin', { ...(await adminData()), error: `Email "${email}" не найден`, success: null });
+  if (target.is_main_admin) return res.render('admin', { ...(await adminData()), error: 'Этот пользователь уже является Главным администратором', success: null });
   await pool.query('UPDATE users SET role=$1 WHERE id=$2', ['admin', target.id]);
   res.render('admin', { ...(await adminData()), success: `${target.full_name} назначен администратором`, error: null });
 });

@@ -199,6 +199,9 @@
 								</span>
 							</td>
 							<td style="padding: 0.5rem;">
+								<% if (u.is_main_admin) { %>
+									<span style="font-size:0.8rem;background:#EDE9FE;color:#5B21B6;padding:0.3rem 0.7rem;border-radius:1rem;font-weight:600;">🔒 Главный администратор</span>
+								<% } else { %>
 								<form action="/admin/users/<%= u.id %>/role" method="POST" style="display: flex; gap: 0.5rem; align-items: center;">
 									<select name="role" class="form-input" style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.875rem;">
 										<option value="applicant" <%= u.role === 'applicant' ? 'selected' : '' %>>📚 Абитуриент</option>
@@ -208,6 +211,7 @@
 									</select>
 									<button type="submit" class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">Сохранить</button>
 								</form>
+								<% } %>
 							</td>
 						</tr>
 					<% }); %>
@@ -260,13 +264,15 @@
 							<p style="color: var(--text-secondary); font-size: 0.8rem;"><%= admin.email %></p>
 						</div>
 					</div>
-					<% if (admin.id !== user.id) { %>
+					<% if (admin.is_main_admin) { %>
+						<span style="font-size:0.8rem;background:#EDE9FE;color:#5B21B6;padding:0.25rem 0.6rem;border-radius:1rem;font-weight:600;">🔒 Главный</span>
+					<% } else if (admin.id === user.id) { %>
+						<span style="color: var(--text-secondary); font-size: 0.8rem;">Это вы</span>
+					<% } else { %>
 						<form action="/admin/users/<%= admin.id %>/role" method="POST" onsubmit="return confirm('Снять права администратора у <%= admin.full_name %>?')">
 							<input type="hidden" name="role" value="applicant">
 							<button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">Снять</button>
 						</form>
-					<% } else { %>
-						<span style="color: var(--text-secondary); font-size: 0.8rem;">Это вы</span>
 					<% } %>
 				</div>
 			<% }); %>
