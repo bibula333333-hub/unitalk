@@ -54,6 +54,12 @@ async function initDB() {
     DO $$ BEGIN
       ALTER TABLE users ADD COLUMN IF NOT EXISTS is_main_admin BOOLEAN DEFAULT FALSE;
     EXCEPTION WHEN others THEN NULL; END $$;
+    -- Migration: update role CHECK constraint to include reporter
+    DO $$ BEGIN
+      ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+      ALTER TABLE users ADD CONSTRAINT users_role_check
+        CHECK(role IN ('applicant','student','reporter','admin'));
+    EXCEPTION WHEN others THEN NULL; END $$;
     CREATE TABLE IF NOT EXISTS universities (
       id          SERIAL PRIMARY KEY,
       name        TEXT NOT NULL,
@@ -117,6 +123,35 @@ async function initDB() {
       created_at  TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS idx_news_author ON news(author_id);
+
+    CREATE TABLE IF NOT EXISTS questions (
+      id            SERIAL PRIMARY KEY,
+      author_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      university_id INTEGER REFERENCES universities(id) ON DELETE SET NULL,
+      faculty_id    INTEGER REFERENCES faculties(id) ON DELETE SET NULL,
+      title         TEXT NOT NULL,
+      content       TEXT NOT NULL,
+      created_at    TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS answers (
+      id          SERIAL PRIMARY KEY,
+      question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+      author_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      content     TEXT NOT NULL,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS suggestions (
+      id              SERIAL PRIMARY KEY,
+      author_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      university_name TEXT NOT NULL,
+      city            TEXT,
+      faculties       TEXT,
+      description     TEXT,
+      status          TEXT DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
+      created_at      TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_questions_uni ON questions(university_id);
+    CREATE INDEX IF NOT EXISTS idx_answers_question ON answers(question_id);
     CREATE INDEX IF NOT EXISTS idx_msg_chat   ON messages(chat_id);
     CREATE INDEX IF NOT EXISTS idx_rev_uni    ON reviews(university_id);
     CREATE INDEX IF NOT EXISTS idx_chat_a     ON chats(user_a_id);
@@ -129,6 +164,8 @@ async function initDB() {
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
+// Avatar route — serves base64 avatars stored in DB
+// (no filesystem dependency, works on Render without Persistent Disk)
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
@@ -148,37 +185,41 @@ app.use((req, res, next) => {
   next();
 });
 
-const storage = multer.diskStorage({
-  destination: './public/avatars/',
-  filename:    (req, file, cb) => cb(null, `avatar-${Date.now()}${path.extname(file.originalname)}`),
-});
-const upload = multer({ storage });
+// Avatars stored as base64 Data URIs in DB — no filesystem needed
+const storage = multer.memoryStorage();
+const upload  = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-const auth = (roles = []) => (req, res, next) => {
-  const token = req.cookies.token;
-  if (!token) return res.redirect('/login');
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    if (roles.length && !roles.includes(decoded.role)) return res.status(403).send('Доступ запрещён');
-    next();
-  } catch {
-    res.clearCookie('token');
-    res.redirect('/login');
-  }
-};
-
-// Inject current user into every response
+// Always fetch fresh role from DB — so admin role changes take effect immediately
+// without requiring the user to re-login
 app.use(async (req, res, next) => {
   const token = req.cookies.token;
   if (token) {
     try {
-      res.locals.user = await dbGet('SELECT * FROM users WHERE id=?', [jwt.verify(token, JWT_SECRET).id]);
-    } catch { res.locals.user = null; }
-  } else { res.locals.user = null; }
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const dbUser  = await dbGet('SELECT * FROM users WHERE id=?', [decoded.id]);
+      if (dbUser) {
+        req.user        = { ...decoded, role: dbUser.role }; // always fresh role
+        res.locals.user = dbUser;
+      } else {
+        res.clearCookie('token');
+        res.locals.user = null;
+      }
+    } catch {
+      res.clearCookie('token');
+      res.locals.user = null;
+    }
+  } else {
+    res.locals.user = null;
+  }
   next();
 });
+
+const auth = (roles = []) => (req, res, next) => {
+  if (!req.user) return res.redirect('/login');
+  if (roles.length && !roles.includes(req.user.role)) return res.status(403).send('Доступ запрещён');
+  next();
+};
 
 // ── Helper: find or create a chat between two users ──────────────────────────
 async function findOrCreateChat(aId, bId) {
@@ -254,8 +295,10 @@ app.get('/profile', auth(), async (req, res) => {
 });
 
 app.post('/profile', auth(), upload.single('avatar'), async (req, res) => {
-  if (req.file)
-    await pool.query('UPDATE users SET avatar=$1 WHERE id=$2', [`/avatars/${req.file.filename}`, req.user.id]);
+  if (req.file) {
+    const b64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+    await pool.query('UPDATE users SET avatar=$1 WHERE id=$2', [b64, req.user.id]);
+  }
   if (req.user.role === 'student') {
     const { university_id, faculty_id, course, graduation_year, bio } = req.body;
     const exists = await dbGet('SELECT id FROM student_profiles WHERE user_id=?', [req.user.id]);
@@ -383,6 +426,130 @@ app.get('/chats/:id', auth(), async (req, res) => {
 });
 
 
+
+// ── Questions ─────────────────────────────────────────────────────────────────
+app.get('/questions', async (req, res) => {
+  const universities = await dbAll('SELECT * FROM universities ORDER BY name');
+  const uniFilter    = req.query.university_id || '';
+  let questions;
+  if (uniFilter) {
+    questions = await pool.query(`
+      SELECT q.*, u.full_name AS author_name, u.avatar AS author_avatar, u.role AS author_role,
+             un.name AS university_name, f.name AS faculty_name,
+             (SELECT COUNT(*) FROM answers WHERE question_id=q.id) AS answer_count
+      FROM questions q JOIN users u ON q.author_id=u.id
+      LEFT JOIN universities un ON q.university_id=un.id
+      LEFT JOIN faculties f ON q.faculty_id=f.id
+      WHERE q.university_id=$1 ORDER BY q.created_at DESC`, [uniFilter]).then(r=>r.rows);
+  } else {
+    questions = await dbAll(`
+      SELECT q.*, u.full_name AS author_name, u.avatar AS author_avatar, u.role AS author_role,
+             un.name AS university_name, f.name AS faculty_name,
+             (SELECT COUNT(*) FROM answers WHERE question_id=q.id) AS answer_count
+      FROM questions q JOIN users u ON q.author_id=u.id
+      LEFT JOIN universities un ON q.university_id=un.id
+      LEFT JOIN faculties f ON q.faculty_id=f.id
+      ORDER BY q.created_at DESC`);
+  }
+  res.render('questions', { questions, universities, uniFilter });
+});
+
+app.get('/questions/ask', auth(), async (req, res) => {
+  const universities = await dbAll('SELECT * FROM universities ORDER BY name');
+  res.render('question-create', { universities, error: null });
+});
+
+app.post('/questions/ask', auth(), async (req, res) => {
+  const { title, content, university_id, faculty_id } = req.body;
+  if (!title || !content) return res.redirect('/questions/ask');
+  await pool.query(
+    'INSERT INTO questions (author_id,university_id,faculty_id,title,content) VALUES ($1,$2,$3,$4,$5)',
+    [req.user.id, university_id||null, faculty_id||null, title, content]
+  );
+  res.redirect('/questions');
+});
+
+app.get('/questions/:id', async (req, res) => {
+  const question = await dbGet(`
+    SELECT q.*, u.full_name AS author_name, u.avatar AS author_avatar,
+           un.name AS university_name, f.name AS faculty_name
+    FROM questions q JOIN users u ON q.author_id=u.id
+    LEFT JOIN universities un ON q.university_id=un.id
+    LEFT JOIN faculties f ON q.faculty_id=f.id
+    WHERE q.id=?`, [req.params.id]);
+  if (!question) return res.status(404).send('Вопрос не найден');
+  const answers = await dbAll(`
+    SELECT a.*, u.full_name AS author_name, u.avatar AS author_avatar, u.role AS author_role
+    FROM answers a JOIN users u ON a.author_id=u.id
+    WHERE a.question_id=? ORDER BY a.created_at ASC`, [req.params.id]);
+  res.render('question-view', { question, answers });
+});
+
+app.post('/questions/:id/answer', auth(), async (req, res) => {
+  const { content } = req.body;
+  if (!content) return res.redirect(`/questions/${req.params.id}`);
+  await pool.query('INSERT INTO answers (question_id,author_id,content) VALUES ($1,$2,$3)',
+    [req.params.id, req.user.id, content]);
+  res.redirect(`/questions/${req.params.id}`);
+});
+
+app.post('/questions/:id/delete', auth(), async (req, res) => {
+  const q = await dbGet('SELECT * FROM questions WHERE id=?', [req.params.id]);
+  if (q && (req.user.role === 'admin' || q.author_id === req.user.id))
+    await pool.query('DELETE FROM questions WHERE id=$1', [req.params.id]);
+  res.redirect('/questions');
+});
+
+app.post('/answers/:id/delete', auth(), async (req, res) => {
+  const a = await dbGet('SELECT * FROM answers WHERE id=?', [req.params.id]);
+  if (!a) return res.redirect('/questions');
+  if (req.user.role === 'admin' || a.author_id === req.user.id)
+    await pool.query('DELETE FROM answers WHERE id=$1', [req.params.id]);
+  res.redirect(`/questions/${a.question_id}`);
+});
+
+// ── Suggestions ───────────────────────────────────────────────────────────────
+app.get('/suggestions', auth(), async (req, res) => {
+  let mySuggestions = await dbAll(`
+    SELECT s.*, u.full_name AS author_name FROM suggestions s JOIN users u ON s.author_id=u.id
+    WHERE s.author_id=? ORDER BY s.created_at DESC`, [req.user.id]);
+  res.render('suggestions', { mySuggestions });
+});
+
+app.post('/suggestions', auth(['student','admin']), async (req, res) => {
+  const { university_name, city, faculties, description } = req.body;
+  if (!university_name) return res.redirect('/suggestions');
+  await pool.query(
+    'INSERT INTO suggestions (author_id,university_name,city,faculties,description) VALUES ($1,$2,$3,$4,$5)',
+    [req.user.id, university_name, city||null, faculties||null, description||null]
+  );
+  res.redirect('/suggestions?sent=1');
+});
+
+// Admin: view and handle suggestions
+app.get('/admin/suggestions', auth(['admin']), async (req, res) => {
+  const suggestions = await dbAll(`
+    SELECT s.*, u.full_name AS author_name, u.avatar AS author_avatar
+    FROM suggestions s JOIN users u ON s.author_id=u.id ORDER BY s.created_at DESC`);
+  res.render('admin-suggestions', { suggestions });
+});
+
+app.post('/admin/suggestions/:id/approve', auth(['admin']), async (req, res) => {
+  // Auto-create the university from suggestion
+  const sg = await dbGet('SELECT * FROM suggestions WHERE id=?', [req.params.id]);
+  if (sg) {
+    await pool.query("INSERT INTO universities (name,city,description) VALUES ($1,$2,$3)",
+      [sg.university_name, sg.city||null, sg.description||null]);
+    await pool.query("UPDATE suggestions SET status='approved' WHERE id=$1", [req.params.id]);
+  }
+  res.redirect('/admin/suggestions');
+});
+
+app.post('/admin/suggestions/:id/reject', auth(['admin']), async (req, res) => {
+  await pool.query("UPDATE suggestions SET status='rejected' WHERE id=$1", [req.params.id]);
+  res.redirect('/admin/suggestions');
+});
+
 // ── News ──────────────────────────────────────────────────────────────────────
 app.get('/news', async (req, res) => {
   const newsList = await dbAll(`
@@ -398,7 +565,9 @@ app.get('/news/create', auth(['reporter','admin']), (req, res) => {
 
 app.post('/news/create', auth(['reporter','admin']), upload.single('image'), async (req, res) => {
   const { title, content } = req.body;
-  const image_url = req.file ? `/avatars/${req.file.filename}` : null;
+  const image_url = req.file
+    ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`
+    : null;
   await pool.query(
     'INSERT INTO news (author_id, title, content, image_url) VALUES ($1,$2,$3,$4)',
     [req.user.id, title, content, image_url]

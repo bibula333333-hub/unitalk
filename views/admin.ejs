@@ -1,6 +1,9 @@
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
 	<h1>⚙️ Панель администратора</h1>
-	<a href="/admin/reviews" class="btn btn-outline">📝 Управление отзывами</a>
+	<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+	<a href="/admin/reviews" class="btn btn-outline">📝 Отзывы</a>
+	<a href="/admin/suggestions" class="btn btn-outline">💡 Заявки на вузы</a>
+</div>
 </div>
 
 <% if (typeof success !== 'undefined' && success) { %>

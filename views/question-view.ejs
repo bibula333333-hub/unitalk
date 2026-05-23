@@ -1,0 +1,85 @@
+<div style="max-width:760px;margin:0 auto;">
+  <a href="/questions" style="color:var(--primary-color);text-decoration:none;">← Все вопросы</a>
+
+  <!-- Question -->
+  <div class="card" style="margin-top:1rem;border-left:4px solid var(--primary-color);">
+    <div style="display:flex;gap:0.85rem;align-items:flex-start;">
+      <img src="<%= question.author_avatar %>" alt=""
+           style="width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+      <div style="flex:1;">
+        <h1 style="font-size:1.3rem;margin-bottom:0.4rem;"><%= question.title %></h1>
+        <div style="font-size:0.8rem;color:var(--text-secondary);display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+          <a href="/user/<%= question.author_id %>" style="color:inherit;text-decoration:none;"><%= question.author_name %></a>
+          <% if (question.university_name) { %><span>🏫 <%= question.university_name %></span><% } %>
+          <% if (question.faculty_name)    { %><span>📚 <%= question.faculty_name %></span><% } %>
+          <span><%= new Date(question.created_at).toLocaleDateString('ru-RU') %></span>
+        </div>
+        <p style="line-height:1.7;white-space:pre-wrap;"><%= question.content %></p>
+      </div>
+      <% if (locals.user && (user.role === 'admin' || user.id === question.author_id)) { %>
+        <form action="/questions/<%= question.id %>/delete" method="POST"
+              onsubmit="return confirm('Удалить этот вопрос со всеми ответами?')">
+          <button type="submit" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:#EF4444;" title="Удалить">🗑️</button>
+        </form>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Answers -->
+  <div style="margin-top:1.5rem;">
+    <h2 style="margin-bottom:1rem;">💬 Ответы (<%= answers.length %>)</h2>
+
+    <% if (answers.length === 0) { %>
+      <div class="card" style="text-align:center;padding:2rem;">
+        <p style="color:var(--text-secondary);">Ответов пока нет. Будьте первым!</p>
+      </div>
+    <% } %>
+
+    <% answers.forEach(a => { %>
+      <div class="card" style="border-left:4px solid
+        <%= a.author_role==='student'?'#10B981':a.author_role==='admin'?'#8B5CF6':'#6B7280' %>;">
+        <div style="display:flex;gap:0.75rem;align-items:flex-start;">
+          <img src="<%= a.author_avatar %>" alt=""
+               style="width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem;flex-wrap:wrap;">
+              <strong><a href="/user/<%= a.author_id %>" style="color:inherit;text-decoration:none;"><%= a.author_name %></a></strong>
+              <% if (a.author_role==='student') { %>
+                <span style="font-size:0.72rem;background:#D1FAE5;color:#065F46;padding:0.1rem 0.5rem;border-radius:1rem;font-weight:600;">🎓 Студент</span>
+              <% } else if (a.author_role==='admin') { %>
+                <span style="font-size:0.72rem;background:#EDE9FE;color:#5B21B6;padding:0.1rem 0.5rem;border-radius:1rem;font-weight:600;">👑 Админ</span>
+              <% } %>
+              <span style="color:var(--text-secondary);font-size:0.78rem;"><%= new Date(a.created_at).toLocaleDateString('ru-RU') %></span>
+            </div>
+            <p style="line-height:1.65;white-space:pre-wrap;"><%= a.content %></p>
+          </div>
+          <% if (locals.user && (user.role === 'admin' || user.id === a.author_id)) { %>
+            <form action="/answers/<%= a.id %>/delete" method="POST" onsubmit="return confirm('Удалить ответ?')">
+              <button type="submit" style="background:none;border:none;cursor:pointer;font-size:1rem;color:#EF4444;" title="Удалить">🗑️</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+
+  <!-- Answer form -->
+  <div style="margin-top:1.5rem;">
+    <% if (locals.user) { %>
+      <div class="card">
+        <h3 style="margin-bottom:0.85rem;">✍️ Ваш ответ</h3>
+        <form action="/questions/<%= question.id %>/answer" method="POST">
+          <div class="form-group">
+            <textarea name="content" class="form-input" rows="4" required
+                      placeholder="Поделитесь своим опытом или знаниями…"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Ответить</button>
+        </form>
+      </div>
+    <% } else { %>
+      <div class="card" style="text-align:center;padding:1.5rem;">
+        <a href="/login" style="color:var(--primary-color);">Войдите</a>, чтобы оставить ответ
+      </div>
+    <% } %>
+  </div>
+</div>
