@@ -1,0 +1,126 @@
+<style>
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 160px);min-height:420px;}
+.chat-hdr{padding:0.85rem 1.25rem;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:1rem;flex-shrink:0;border-radius:0.75rem 0.75rem 0 0;flex-wrap:wrap;}
+.msg-box{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:0.65rem;}
+.msg-row{display:flex;flex-direction:column;}
+.msg-row.own{align-items:flex-end;}
+.msg-row.other{align-items:flex-start;}
+.msg-meta{font-size:0.7rem;color:var(--text-secondary);margin-bottom:0.18rem;display:flex;align-items:center;gap:0.4rem;}
+.msg-row.own .msg-meta{flex-direction:row-reverse;}
+.bubble{max-width:68%;padding:0.55rem 0.85rem;border-radius:1.1rem;font-size:0.95rem;line-height:1.5;word-break:break-word;}
+.bubble.incoming{background:var(--bg-secondary);border-bottom-left-radius:0.2rem;}
+.bubble.outgoing{background:var(--primary-color);color:white;border-bottom-right-radius:0.2rem;}
+.chat-form{display:flex;gap:0.75rem;padding:0.85rem 1rem;border-top:1px solid var(--border-color);flex-shrink:0;border-radius:0 0 0.75rem 0.75rem;}
+.chat-form input{flex:1;}
+.limit-bar{font-size:0.78rem;color:var(--text-secondary);}
+.status-pill{font-size:0.72rem;padding:0.15rem 0.55rem;border-radius:0.7rem;font-weight:600;}
+.status-pill.active{background:#DBEAFE;color:#1E40AF;}
+.status-pill.completed{background:#D1FAE5;color:#065F46;}
+.status-pill.disputed{background:#FEF3C7;color:#92400E;}
+.status-pill.refunded{background:#FEE2E2;color:#991B1B;}
+</style>
+
+<a href="/consultations" style="color:var(--primary-color);text-decoration:none;display:block;margin-bottom:0.75rem;">← Все консультации</a>
+
+<div class="card chat-wrap" style="padding:0;">
+  <div class="chat-hdr">
+    <img src="<%= partner.avatar %>" alt="" style="width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+    <div style="flex:1;">
+      <strong><%= partner.full_name %></strong>
+      <p class="limit-bar" style="margin:0;" id="limitBar"><%= consultation.messages_used %>/<%= consultation.message_limit %> сообщений · «<%= consultation.topic %>»</p>
+    </div>
+    <span class="status-pill <%= consultation.status %>" id="statusPill">
+      <%= {active:'В процессе', completed:'Завершена', disputed:'На апелляции', refunded:'Возвращена'}[consultation.status] %>
+    </span>
+    <% if (user.role === 'applicant' && !dispute) { %>
+      <button class="btn btn-outline" id="disputeBtn" style="font-size:0.8rem;">⚠️ Апелляция</button>
+    <% } %>
+  </div>
+
+  <% if (dispute && dispute.status === 'pending') { %>
+    <div style="padding:0.6rem 1.25rem;background:#FEF3C7;color:#92400E;font-size:0.85rem;">
+      Апелляция подана и рассматривается администратором.
+    </div>
+  <% } %>
+
+  <div class="msg-box" id="msgBox">
+    <% messages.forEach(m => { %>
+      <% const isOwn = m.sender_id === user.id; %>
+      <% const t = new Date(m.created_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}); %>
+      <div class="msg-row <%= isOwn?'own':'other' %>">
+        <div class="msg-meta"><span><%= isOwn?'Вы':m.full_name %></span><span>·</span><span><%= t %></span></div>
+        <div class="bubble <%= isOwn?'outgoing':'incoming' %>"><%- m.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>') %></div>
+      </div>
+    <% }); %>
+  </div>
+
+  <form class="chat-form" id="chatForm">
+    <input id="msgInput" class="form-input" placeholder="<%= consultation.status==='active' ? 'Введите сообщение…' : 'Консультация завершена' %>" autocomplete="off" <%= consultation.status!=='active'?'disabled':'' %>>
+    <button type="submit" class="btn btn-primary" <%= consultation.status!=='active'?'disabled':'' %>>Отправить</button>
+  </form>
+</div>
+
+<% if (user.role === 'applicant' && consultation.status === 'completed') { %>
+  <div class="card" style="margin-top:1rem;text-align:center;">
+    <p style="margin-bottom:0.75rem;">Лимит сообщений исчерпан. Хотите продолжить разговор?</p>
+    <a href="/consultations/new/<%= partner.id %>" class="btn btn-primary">Заказать новую консультацию</a>
+  </div>
+<% } %>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const CONSULT_ID = <%= consultation.id %>;
+const USER_ID    = <%= user.id %>;
+const box        = document.getElementById('msgBox');
+const socket     = io({ transports: ['websocket','polling'] });
+
+socket.emit('join_consultation', CONSULT_ID);
+box.scrollTop = box.scrollHeight;
+
+document.getElementById('chatForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const inp  = document.getElementById('msgInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  socket.emit('send_consultation_message', { consultationId: CONSULT_ID, senderId: USER_ID, content: text });
+  inp.value = '';
+  inp.focus();
+});
+
+socket.on('new_consultation_message', function({ message, messagesUsed, messageLimit, status }) {
+  const isOwn = message.sender_id === USER_ID;
+  const t = new Date(message.created_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  const safe = String(message.content).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  const row = document.createElement('div');
+  row.className = 'msg-row ' + (isOwn ? 'own' : 'other');
+  row.innerHTML = `
+    <div class="msg-meta"><span>${isOwn ? 'Вы' : message.full_name}</span><span>·</span><span>${t}</span></div>
+    <div class="bubble ${isOwn ? 'outgoing' : 'incoming'}">${safe}</div>`;
+  box.appendChild(row);
+  box.scrollTop = box.scrollHeight;
+
+  document.getElementById('limitBar').textContent = `${messagesUsed}/${messageLimit} сообщений`;
+  if (status === 'completed') {
+    const inp = document.getElementById('msgInput');
+    inp.disabled = true;
+    inp.placeholder = 'Консультация завершена';
+    document.querySelector('#chatForm button').disabled = true;
+    const pill = document.getElementById('statusPill');
+    pill.className = 'status-pill completed';
+    pill.textContent = 'Завершена';
+    if (!document.querySelector('.card[data-continue]')) location.reload();
+  }
+});
+
+socket.on('consultation_error', function({ error }) { alert(error); });
+
+<% if (user.role === 'applicant' && !dispute) { %>
+document.getElementById('disputeBtn').addEventListener('click', async function() {
+  const reason = prompt('Опишите, почему консультация не помогла (необязательно):') || '';
+  const res = await fetch('/consultations/' + CONSULT_ID + '/dispute', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason })
+  });
+  if (res.ok) location.reload(); else alert((await res.json().catch(()=>({}))).error || 'Ошибка');
+});
+<% } %>
+</script>

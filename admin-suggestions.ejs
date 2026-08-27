@@ -1,0 +1,35 @@
+<style>
+.consult-card{display:flex;gap:1rem;align-items:center;padding:1rem;border:1px solid var(--border-color);border-radius:0.75rem;margin-bottom:0.75rem;text-decoration:none;color:inherit;}
+.consult-card:hover{border-color:var(--primary-color);}
+.consult-status{font-size:0.72rem;padding:0.15rem 0.55rem;border-radius:0.7rem;font-weight:600;white-space:nowrap;}
+.consult-status.active{background:#DBEAFE;color:#1E40AF;}
+.consult-status.completed{background:#D1FAE5;color:#065F46;}
+.consult-status.disputed{background:#FEF3C7;color:#92400E;}
+.consult-status.refunded{background:#FEE2E2;color:#991B1B;}
+</style>
+
+<h1 style="margin-bottom:1rem;">🎓 Платные консультации</h1>
+
+<% if (consultations.length === 0) { %>
+  <div class="card" style="text-align:center;padding:2.5rem;">
+    <p style="color:var(--text-secondary);">Пока нет ни одной консультации</p>
+    <% if (user.role === 'applicant') { %>
+      <p style="margin-top:0.5rem;"><a href="/universities" style="color:var(--primary-color);">Найдите вуз</a>, откройте профиль интересующего студента и закажите консультацию.</p>
+    <% } %>
+  </div>
+<% } %>
+
+<% consultations.forEach(c => { %>
+  <% const other = user.role === 'student' ? { name: c.applicant_name, avatar: c.applicant_avatar } : { name: c.student_name, avatar: c.student_avatar }; %>
+  <a href="/consultations/<%= c.id %>" class="consult-card">
+    <img src="<%= other.avatar %>" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">
+    <div style="flex:1;">
+      <strong><%= other.name %></strong>
+      <p style="color:var(--text-secondary);font-size:0.85rem;margin:0.2rem 0 0;">«<%= c.topic %>»</p>
+      <p style="color:var(--text-secondary);font-size:0.78rem;margin:0.15rem 0 0;"><%= c.messages_used %>/<%= c.message_limit %> сообщений · <%= c.price_coins %> 🪙</p>
+    </div>
+    <span class="consult-status <%= c.status %>">
+      <%= {active:'В процессе', completed:'Завершена', disputed:'На апелляции', refunded:'Возвращена'}[c.status] %>
+    </span>
+  </a>
+<% }); %>

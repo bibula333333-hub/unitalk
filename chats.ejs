@@ -1,0 +1,74 @@
+<style>
+.coin-grid{display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;}
+@media (max-width:800px){.coin-grid{grid-template-columns:1fr;}}
+.pkg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;}
+@media (max-width:600px){.pkg-grid{grid-template-columns:1fr;}}
+.pkg-card{border:1px solid var(--border-color);border-radius:0.75rem;padding:1rem;text-align:center;}
+.pkg-card strong{font-size:1.4rem;}
+.tx-row{display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--border-color);font-size:0.9rem;}
+.tx-amount.pos{color:#10B981;font-weight:600;}
+.tx-amount.neg{color:#EF4444;font-weight:600;}
+.badge-status{font-size:0.75rem;padding:0.15rem 0.5rem;border-radius:0.75rem;font-weight:600;}
+</style>
+
+<h1 style="margin-bottom:0.25rem;">🪙 Коины</h1>
+<p style="color:var(--text-secondary);margin-bottom:1.5rem;">
+  Коины тратятся на платные консультации со студентами. Если консультация помогла — <%= studentSharePct %>% от суммы уходит студенту.
+</p>
+
+<div class="coin-grid">
+  <div>
+    <div class="card" style="margin-bottom:1.5rem;">
+      <h2 style="margin-bottom:0.25rem;">Баланс: <%= me.coins %> 🪙</h2>
+      <% if (me.role === 'student') { %>
+        <p style="color:var(--text-secondary);">К выплате: <strong><%= (me.earned_kopecks/100).toFixed(2) %>₽</strong></p>
+        <% if (pendingPayout) { %>
+          <p style="color:#F59E0B;font-size:0.85rem;">⏳ Заявка на выплату <%= (pendingPayout.amount_kopecks/100).toFixed(2) %>₽ уже отправлена и ожидает обработки.</p>
+        <% } else if (me.earned_kopecks > 0) { %>
+          <form action="/coins/payout-request" method="POST">
+            <button type="submit" class="btn btn-primary">Запросить выплату</button>
+          </form>
+        <% } %>
+      <% } %>
+    </div>
+
+    <% if (me.role === 'applicant') { %>
+      <div class="card" style="margin-bottom:1.5rem;">
+        <h2 style="margin-bottom:0.75rem;">Пополнить баланс</h2>
+        <p style="color:#F59E0B;font-size:0.8rem;margin-bottom:0.75rem;">
+          ⚠️ Приём реальной оплаты пока не подключён — это тестовое пополнение для проверки работы системы коинов.
+        </p>
+        <div class="pkg-grid">
+          <% packages.forEach(p => { %>
+            <form action="/coins/topup" method="POST" class="pkg-card">
+              <input type="hidden" name="coins" value="<%= p.coins %>">
+              <strong><%= p.coins %> 🪙</strong>
+              <p style="color:var(--text-secondary);margin:0.25rem 0 0.75rem;"><%= p.priceRub %>₽</p>
+              <button type="submit" class="btn btn-outline" style="width:100%;">Купить</button>
+            </form>
+          <% }); %>
+        </div>
+      </div>
+
+      <div class="card">
+        <p style="margin-bottom:0.75rem;">Коины тратятся на платные консультации со студентами.</p>
+        <a href="/consultations" class="btn btn-primary">Мои консультации</a>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-bottom:0.75rem;">История</h2>
+    <% if (transactions.length === 0) { %>
+      <p style="color:var(--text-secondary);">Пока пусто</p>
+    <% } %>
+    <% transactions.forEach(t => { %>
+      <div class="tx-row">
+        <span><%= t.description || t.type %></span>
+        <% if (t.amount !== 0) { %>
+          <span class="tx-amount <%= t.amount > 0 ? 'pos' : 'neg' %>"><%= t.amount > 0 ? '+' : '' %><%= t.amount %></span>
+        <% } %>
+      </div>
+    <% }); %>
+  </div>
+</div>

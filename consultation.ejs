@@ -1,0 +1,132 @@
+<h1><%= university.name %></h1>
+<% if (university.city) { %>
+  <p style="color:var(--text-secondary);font-size:1.1rem;margin-top:0.25rem;">📍 <%= university.city %></p>
+<% } %>
+<% if (university.description) { %>
+  <p style="margin-top:0.75rem;line-height:1.7;"><%= university.description %></p>
+<% } %>
+
+<div class="mt-2">
+  <h2>Факультеты</h2>
+  <% if (faculties.length > 0) { %>
+    <div class="grid grid-2">
+      <% faculties.forEach(f => { %>
+        <div class="card">
+          <h3><%= f.name %></h3>
+          <% if (f.description) { %><p style="color:var(--text-secondary);margin-top:0.25rem;"><%= f.description %></p><% } %>
+        </div>
+      <% }); %>
+    </div>
+  <% } else { %>
+    <p style="color:var(--text-secondary);">Факультеты пока не добавлены</p>
+  <% } %>
+</div>
+
+<div class="mt-2">
+  <h2>Отзывы</h2>
+
+  <% if (locals.user) { %>
+    <div class="card" style="margin-bottom:1.5rem;">
+      <h3 style="margin-bottom:1rem;">✍️ Оставить отзыв</h3>
+      <form action="/universities/<%= university.id %>/review" method="POST">
+        <div class="form-group">
+          <label class="form-label">Факультет (необязательно)</label>
+          <select name="faculty_id" class="form-input">
+            <option value="">Весь вуз</option>
+            <% faculties.forEach(f => { %>
+              <option value="<%= f.id %>"><%= f.name %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Оценка</label>
+          <select name="rating" class="form-input" required>
+            <option value="5">5 ★★★★★ — Отлично</option>
+            <option value="4">4 ★★★★ — Хорошо</option>
+            <option value="3">3 ★★★ — Нормально</option>
+            <option value="2">2 ★★ — Плохо</option>
+            <option value="1">1 ★ — Ужасно</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Текст отзыва</label>
+          <textarea name="content" class="form-input" rows="4" required
+                    placeholder="Поделитесь своим мнением об учёбе, атмосфере, преподавателях…"></textarea>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+            <input type="checkbox" name="is_anonymous" value="1">
+            Анонимный отзыв
+          </label>
+        </div>
+        <button type="submit" class="btn btn-primary">Отправить отзыв</button>
+        <p style="color:var(--text-secondary);font-size:0.8rem;margin-top:0.5rem;">
+          Отзыв появится после проверки модератором
+        </p>
+      </form>
+    </div>
+  <% } else { %>
+    <p style="margin-bottom:1rem;"><a href="/login" style="color:var(--primary-color);">Войдите</a>, чтобы оставить отзыв</p>
+  <% } %>
+
+  <% if (reviews.length > 0) { %>
+    <% reviews.forEach(review => { %>
+      <div class="card" style="border-left: 4px solid <%= review.moderation_status === 'approved' ? '#10B981' : '#F59E0B' %>;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;">
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <img src="<%= review.avatar %>" alt=""
+                 style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+            <div>
+              <strong>
+                <a href="/user/<%= review.user_id %>" style="color:inherit;text-decoration:none;">
+                  <%= review.display_name %>
+                </a>
+              </strong>
+              <% if (review.faculty_name) { %>
+                <span style="color:var(--text-secondary);font-size:0.875rem;"> · <%= review.faculty_name %></span>
+              <% } %>
+              <div style="font-size:0.8rem;color:var(--text-secondary);">
+                <%= new Date(review.created_at).toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}) %>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.75rem;flex-shrink:0;">
+            <div style="color:#F59E0B;font-size:1.1rem;">
+              <% for (let i=0;i<review.rating;i++) { %>★<% } %>
+              <% for (let i=review.rating;i<5;i++) { %>☆<% } %>
+            </div>
+            <% if (locals.user && (user.role === 'admin' || user.id === review.user_id)) { %>
+              <form action="/admin/reviews/<%= review.id %>/delete" method="POST"
+                    onsubmit="return confirm('Удалить этот отзыв?')">
+                <input type="hidden" name="redirect" value="/universities/<%= university.id %>">
+                <button type="submit"
+                        style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:#EF4444;"
+                        title="Удалить">🗑️</button>
+              </form>
+            <% } %>
+          </div>
+        </div>
+
+        <p style="margin-top:0.85rem;line-height:1.65;"><%= review.content %></p>
+
+        <!-- Статус модерации -->
+        <div style="margin-top:0.65rem;">
+          <% if (review.moderation_status === 'approved') { %>
+            <span style="display:inline-flex;align-items:center;gap:0.3rem;font-size:0.75rem;padding:0.2rem 0.65rem;background:#D1FAE5;color:#065F46;border-radius:1rem;font-weight:600;">
+              ✅ Одобрено модератором
+            </span>
+          <% } else { %>
+            <span style="display:inline-flex;align-items:center;gap:0.3rem;font-size:0.75rem;padding:0.2rem 0.65rem;background:#FEF3C7;color:#92400E;border-radius:1rem;font-weight:600;">
+              ⏳ На модерации
+            </span>
+          <% } %>
+        </div>
+      </div>
+    <% }); %>
+  <% } else { %>
+    <div class="card" style="text-align:center;padding:2.5rem;">
+      <p style="font-size:1.3rem;margin-bottom:0.5rem;">💬</p>
+      <p style="color:var(--text-secondary);">Пока нет отзывов. Будьте первым!</p>
+    </div>
+  <% } %>
+</div>

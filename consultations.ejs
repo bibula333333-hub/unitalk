@@ -1,0 +1,53 @@
+<div style="max-width:680px;margin:0 auto;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+    <h1>❓ Задать вопрос</h1>
+    <a href="/questions" class="btn btn-outline">← Назад</a>
+  </div>
+
+  <% if (error) { %><div class="alert alert-error" style="margin-bottom:1rem;"><%= error %></div><% } %>
+
+  <div class="card">
+    <form action="/questions/ask" method="POST">
+      <div class="form-group">
+        <label class="form-label">Вопрос *</label>
+        <input type="text" name="title" class="form-input" required maxlength="200"
+               placeholder="Кратко сформулируйте вопрос…">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Подробности</label>
+        <textarea name="content" class="form-input" rows="5" required
+                  placeholder="Опишите вопрос подробнее: что именно хотите узнать, в чём сомневаетесь…"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Вуз (необязательно)</label>
+        <select name="university_id" class="form-input" id="uniSel">
+          <option value="">Общий вопрос</option>
+          <% universities.forEach(u => { %>
+            <option value="<%= u.id %>"><%= u.name %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Факультет (необязательно)</label>
+        <select name="faculty_id" class="form-input" id="facSel">
+          <option value="">— выберите вуз сначала —</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:1rem;">
+        <button type="submit" class="btn btn-primary">📤 Опубликовать вопрос</button>
+        <a href="/questions" class="btn btn-outline">Отмена</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.getElementById('uniSel').addEventListener('change', async function() {
+  const sel = document.getElementById('facSel');
+  if (!this.value) { sel.innerHTML = '<option value="">— выберите вуз сначала —</option>'; return; }
+  sel.innerHTML = '<option value="">Загрузка…</option>';
+  const faculties = await fetch('/api/faculties/' + this.value).then(r => r.json()).catch(() => []);
+  sel.innerHTML = '<option value="">Весь вуз</option>';
+  faculties.forEach(f => { const o = document.createElement('option'); o.value=f.id; o.textContent=f.name; sel.appendChild(o); });
+});
+</script>

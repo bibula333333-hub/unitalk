@@ -1,0 +1,54 @@
+<style>
+.pkg-select{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin:1rem 0;}
+@media (max-width:600px){.pkg-select{grid-template-columns:1fr;}}
+.pkg-option{border:2px solid var(--border-color);border-radius:0.75rem;padding:1rem;cursor:pointer;text-align:center;}
+.pkg-option.selected{border-color:var(--primary-color);background:rgba(99,102,241,0.06);}
+.pkg-option input{display:none;}
+</style>
+
+<a href="/user/<%= student.id %>" style="color:var(--primary-color);text-decoration:none;display:block;margin-bottom:1rem;">← Назад к профилю</a>
+
+<div class="card" style="max-width:600px;margin:0 auto;">
+  <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;">
+    <img src="<%= student.avatar %>" alt="" style="width:52px;height:52px;border-radius:50%;object-fit:cover;">
+    <div>
+      <h1 style="margin:0;font-size:1.2rem;">Консультация с <%= student.full_name %></h1>
+      <p style="color:var(--text-secondary);font-size:0.85rem;margin:0.2rem 0 0;">🪙 Ваш баланс: <%= me.coins %></p>
+    </div>
+  </div>
+
+  <form action="/consultations" method="POST">
+    <input type="hidden" name="studentId" value="<%= student.id %>">
+
+    <label class="form-label">Ваш вопрос</label>
+    <textarea name="topic" class="form-input" rows="4" required placeholder="Опишите, что хотите узнать — про поступление, учёбу, факультет…"></textarea>
+
+    <label class="form-label" style="margin-top:1rem;display:block;">Выберите пакет</label>
+    <div class="pkg-select">
+      <% packages.forEach((p, i) => { %>
+        <label class="pkg-option <%= i===0?'selected':'' %>">
+          <input type="radio" name="package" value="<%= p.key %>" <%= i===0?'checked':'' %>>
+          <strong><%= p.label %></strong>
+          <p style="color:var(--text-secondary);font-size:0.85rem;margin:0.3rem 0;">до <%= p.messageLimit %> сообщений</p>
+          <p style="font-weight:600;"><%= p.coins %> 🪙 <span style="color:var(--text-secondary);font-weight:400;">(<%= (p.coins*coinPriceRub).toFixed(0) %>₽)</span></p>
+        </label>
+      <% }); %>
+    </div>
+
+    <p style="color:var(--text-secondary);font-size:0.8rem;margin:0.5rem 0 1rem;">
+      Оплата списывается сразу при отправке запроса. Если студент не ответит по существу, вы сможете подать апелляцию.
+    </p>
+
+    <button type="submit" class="btn btn-primary" style="width:100%;">Оплатить и отправить вопрос</button>
+  </form>
+</div>
+
+<script>
+document.querySelectorAll('.pkg-option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    document.querySelectorAll('.pkg-option').forEach(o => o.classList.remove('selected'));
+    opt.classList.add('selected');
+    opt.querySelector('input').checked = true;
+  });
+});
+</script>

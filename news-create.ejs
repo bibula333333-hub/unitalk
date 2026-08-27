@@ -1,0 +1,117 @@
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+	<h1>📝 Управление отзывами</h1>
+	<a href="/admin" class="btn btn-outline">← Назад к панели</a>
+</div>
+
+<%
+const pending  = reviews.filter(r => r.moderation_status !== 'approved');
+const approved = reviews.filter(r => r.moderation_status === 'approved');
+%>
+
+<!-- Фильтр -->
+<div style="display:flex;gap:0.5rem;margin-bottom:1.25rem;">
+	<button onclick="showSection('pending')"  id="btn-pending"
+		style="padding:0.5rem 1.25rem;border-radius:2rem;border:2px solid #F59E0B;background:#FEF3C7;color:#92400E;font-weight:600;cursor:pointer;">
+		⏳ На проверке (<%= pending.length %>)
+	</button>
+	<button onclick="showSection('approved')" id="btn-approved"
+		style="padding:0.5rem 1.25rem;border-radius:2rem;border:2px solid #10B981;background:#D1FAE5;color:#065F46;font-weight:600;cursor:pointer;">
+		✅ Одобренные (<%= approved.length %>)
+	</button>
+</div>
+
+<!-- ОЖИДАЮЩИЕ -->
+<div id="section-pending">
+	<% if (pending.length === 0) { %>
+		<div class="card" style="text-align:center;padding:2.5rem;">
+			<p style="font-size:1.5rem;margin-bottom:0.5rem;">🎉</p>
+			<p style="color:var(--text-secondary);">Все отзывы проверены</p>
+		</div>
+	<% } %>
+	<% pending.forEach(review => { %>
+		<div class="card" style="border-left:4px solid #F59E0B;">
+			<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;">
+				<div style="flex:1;min-width:0;">
+					<div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+						<strong><%= review.user_name %></strong>
+						<span style="color:var(--text-secondary);">о вузе <em><%= review.university_name %></em></span>
+						<% if (review.faculty_name) { %><span style="color:var(--text-secondary);">· <%= review.faculty_name %></span><% } %>
+						<% if (review.is_anonymous) { %><span style="background:#F3F4F6;padding:0.1rem 0.5rem;border-radius:1rem;font-size:0.75rem;">Анонимно</span><% } %>
+					</div>
+					<div style="color:#F59E0B;margin-bottom:0.5rem;font-size:1rem;">
+						<% for (let i=0;i<review.rating;i++) { %>★<% } %><% for (let i=review.rating;i<5;i++) { %>☆<% } %>
+					</div>
+					<p style="line-height:1.6;"><%= review.content %></p>
+					<p style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.5rem;">
+						<%= new Date(review.created_at).toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}) %>
+					</p>
+					<div style="margin-top:0.75rem;padding:0.4rem 0.8rem;background:#FEF3C7;border-radius:0.5rem;display:inline-block;">
+						<span style="color:#92400E;font-size:0.8rem;font-weight:600;">⏳ Не проверено модератором</span>
+					</div>
+				</div>
+				<div style="display:flex;flex-direction:column;gap:0.5rem;flex-shrink:0;">
+					<form action="/admin/reviews/<%= review.id %>/approve" method="POST">
+						<button type="submit" style="padding:0.45rem 1rem;background:#10B981;color:white;border:none;border-radius:0.5rem;cursor:pointer;font-size:0.875rem;font-weight:600;white-space:nowrap;">
+							✅ Одобрить
+						</button>
+					</form>
+					<form action="/admin/reviews/<%= review.id %>/delete" method="POST"
+						  onsubmit="return confirm('Удалить этот отзыв?')">
+						<input type="hidden" name="redirect" value="/admin/reviews">
+						<button type="submit" class="btn btn-danger" style="padding:0.45rem 1rem;font-size:0.875rem;white-space:nowrap;width:100%;">
+							🗑 Удалить
+						</button>
+					</form>
+				</div>
+			</div>
+		</div>
+	<% }); %>
+</div>
+
+<!-- ОДОБРЕННЫЕ -->
+<div id="section-approved" style="display:none;">
+	<% if (approved.length === 0) { %>
+		<div class="card" style="text-align:center;padding:2.5rem;">
+			<p style="color:var(--text-secondary);">Одобренных отзывов нет</p>
+		</div>
+	<% } %>
+	<% approved.forEach(review => { %>
+		<div class="card" style="border-left:4px solid #10B981;">
+			<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;">
+				<div style="flex:1;min-width:0;">
+					<div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+						<strong><%= review.user_name %></strong>
+						<span style="color:var(--text-secondary);">о вузе <em><%= review.university_name %></em></span>
+						<% if (review.faculty_name) { %><span style="color:var(--text-secondary);">· <%= review.faculty_name %></span><% } %>
+					</div>
+					<div style="color:#F59E0B;margin-bottom:0.5rem;">
+						<% for (let i=0;i<review.rating;i++) { %>★<% } %><% for (let i=review.rating;i<5;i++) { %>☆<% } %>
+					</div>
+					<p style="line-height:1.6;"><%= review.content %></p>
+					<p style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.5rem;">
+						<%= new Date(review.created_at).toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}) %>
+					</p>
+					<div style="margin-top:0.75rem;padding:0.4rem 0.8rem;background:#D1FAE5;border-radius:0.5rem;display:inline-block;">
+						<span style="color:#065F46;font-size:0.8rem;font-weight:600;">✅ Одобрено модератором</span>
+					</div>
+				</div>
+				<form action="/admin/reviews/<%= review.id %>/delete" method="POST"
+					  onsubmit="return confirm('Удалить одобренный отзыв?')">
+					<input type="hidden" name="redirect" value="/admin/reviews">
+					<button type="submit" class="btn btn-danger" style="padding:0.45rem 1rem;font-size:0.875rem;white-space:nowrap;">
+						🗑 Удалить
+					</button>
+				</form>
+			</div>
+		</div>
+	<% }); %>
+</div>
+
+<script>
+function showSection(name) {
+	document.getElementById('section-pending').style.display  = name === 'pending'  ? '' : 'none';
+	document.getElementById('section-approved').style.display = name === 'approved' ? '' : 'none';
+	document.getElementById('btn-pending').style.opacity  = name === 'pending'  ? '1' : '0.55';
+	document.getElementById('btn-approved').style.opacity = name === 'approved' ? '1' : '0.55';
+}
+</script>

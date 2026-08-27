@@ -1,0 +1,62 @@
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+  <h1>⚖️ Апелляции и выплаты</h1>
+  <a href="/admin" class="btn btn-outline">← Назад к панели</a>
+</div>
+
+<h2 style="margin-bottom:0.75rem;">Апелляции по консультациям (<%= disputes.length %>)</h2>
+<% if (disputes.length === 0) { %>
+  <div class="card" style="text-align:center;padding:2rem;margin-bottom:2rem;">
+    <p style="color:var(--text-secondary);">Открытых апелляций нет</p>
+  </div>
+<% } %>
+<% disputes.forEach(d => { %>
+  <div class="card" style="border-left:4px solid #F59E0B;margin-bottom:0.85rem;">
+    <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start;">
+      <div style="flex:1;">
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.3rem;">
+          <%= d.applicant_name %> → <%= d.student_name %> · <%= d.price_coins %> 🪙 (<%= (d.payer_kopecks/100).toFixed(2) %>₽)
+        </p>
+        <p style="margin-bottom:0.4rem;">Тема: «<%= d.topic %>»</p>
+        <% if (d.reason) { %>
+          <p style="font-size:0.85rem;color:var(--text-secondary);">Причина: <%= d.reason %></p>
+        <% } %>
+        <p style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.3rem;">
+          <a href="/consultations/<%= d.consultation_id %>" style="color:var(--primary-color);">Открыть переписку →</a>
+        </p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0.5rem;flex-shrink:0;">
+        <form action="/admin/appeals/<%= d.id %>/refund" method="POST">
+          <button type="submit" style="padding:0.4rem 1rem;background:#EF4444;color:white;border:none;border-radius:0.5rem;cursor:pointer;font-weight:600;width:100%;">
+            ↩️ Вернуть коины абитуриенту
+          </button>
+        </form>
+        <form action="/admin/appeals/<%= d.id %>/reject" method="POST">
+          <button type="submit" style="padding:0.4rem 1rem;background:#10B981;color:white;border:none;border-radius:0.5rem;cursor:pointer;font-weight:600;width:100%;">
+            ✅ Отклонить, заплатить студенту
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+<% }); %>
+
+<h2 style="margin:2rem 0 0.75rem;">Заявки на выплату (<%= payouts.length %>)</h2>
+<% if (payouts.length === 0) { %>
+  <div class="card" style="text-align:center;padding:2rem;">
+    <p style="color:var(--text-secondary);">Заявок на выплату нет</p>
+  </div>
+<% } %>
+<% payouts.forEach(p => { %>
+  <div class="card" style="margin-bottom:0.85rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+      <div>
+        <strong><%= p.full_name %></strong>
+        <span style="color:var(--text-secondary);"> · <%= p.email %></span>
+        <p style="margin-top:0.25rem;">Сумма: <strong><%= (p.amount_kopecks/100).toFixed(2) %>₽</strong></p>
+      </div>
+      <form action="/admin/payouts/<%= p.id %>/paid" method="POST">
+        <button type="submit" class="btn btn-primary">Отметить выплаченным</button>
+      </form>
+    </div>
+  </div>
+<% }); %>

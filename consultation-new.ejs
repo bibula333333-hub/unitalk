@@ -1,0 +1,50 @@
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="/" class="nav-logo">🎓 UniTalk</a>
+    <div class="nav-links">
+      <a href="/news"         class="nav-link nav-badge-wrap" id="nav-news">
+        📰 Новости<span class="nav-badge" id="badge-news" style="display:none;">0</span>
+      </a>
+      <a href="/universities" class="nav-link">🏫 Вузы</a>
+      <a href="/questions"    class="nav-link">❓ Вопросы</a>
+      <a href="/chats"        class="nav-link nav-badge-wrap" id="nav-chats">
+        💬 Чаты<span class="nav-badge" id="badge-chats" style="display:none;">0</span>
+      </a>
+      <% if (typeof user !== 'undefined' && user) { %>
+        <% if (user.role === 'student' || user.role === 'admin') { %>
+          <a href="/suggestions" class="nav-link">💡 Предложения</a>
+        <% } %>
+        <% if (user.role === 'admin') { %>
+          <a href="/admin" class="nav-link">⚙️ Админ</a>
+          <a href="/admin/appeals" class="nav-link">⚖️ Апелляции</a>
+        <% } %>
+        <a href="/coins" class="nav-link" style="display:flex;align-items:center;gap:0.3rem;">
+          🪙 <%= user.coins || 0 %>
+          <% if (user.role === 'student' && user.earned_kopecks > 0) { %>
+            <span style="font-size:0.7rem;background:#10B981;color:white;padding:0.05rem 0.4rem;border-radius:0.75rem;">
+              +<%= (user.earned_kopecks/100).toFixed(2) %>₽
+            </span>
+          <% } %>
+        </a>
+        <a href="/consultations" class="nav-link">🎓 Консультации</a>
+        <% if (user.role === 'reporter' || user.role === 'admin') { %>
+          <a href="/news/create" class="nav-link">✍️ Написать</a>
+        <% } %>
+        <a href="/user/<%= user.id %>"
+           style="display:flex;align-items:center;gap:0.5rem;text-decoration:none;color:inherit;">
+          <img src="<%= user.avatar %>" alt=""
+               style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--primary-color);"
+               onerror="this.src='/avatars/default.png'">
+          <span><%= user.full_name %></span>
+          <% if (user.role === 'reporter') { %>
+            <span style="font-size:0.7rem;background:#F59E0B;color:white;padding:0.1rem 0.4rem;border-radius:0.75rem;">репортёр</span>
+          <% } %>
+        </a>
+        <a href="/logout" class="nav-link">🚪 Выйти</a>
+      <% } else { %>
+        <a href="/login"    class="nav-link">Войти</a>
+        <a href="/register" class="btn btn-primary">Регистрация</a>
+      <% } %>
+    </div>
+  </div>
+</nav>

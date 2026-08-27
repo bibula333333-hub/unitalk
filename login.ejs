@@ -1,0 +1,77 @@
+<h1>💬 Чаты</h1>
+
+<div class="grid grid-2">
+  <!-- LEFT: existing chats -->
+  <div>
+    <h2>Ваши диалоги</h2>
+    <% if (chats.length > 0) { %>
+      <% chats.forEach(chat => { %>
+        <a href="/chats/<%= chat.id %>" class="card"
+           style="text-decoration:none;color:inherit;display:block;margin-bottom:0.75rem;">
+          <div style="display:flex;align-items:center;gap:1rem;">
+            <img src="<%= chat.avatar %>" alt=""
+                 style="width:50px;height:50px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+            <div style="flex:1;min-width:0;">
+              <strong><%= chat.full_name %></strong>
+              <% if (chat.last_message) { %>
+                <p style="color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  <%= chat.last_message.substring(0, 80) %>
+                </p>
+              <% } %>
+            </div>
+            <% if (chat.unread_count > 0) { %>
+              <span style="background:var(--primary-color);color:white;padding:0.2rem 0.55rem;border-radius:1rem;font-size:0.8rem;flex-shrink:0;">
+                <%= chat.unread_count %>
+              </span>
+            <% } %>
+          </div>
+        </a>
+      <% }); %>
+    <% } else { %>
+      <p style="color:var(--text-secondary);">Диалогов пока нет. Напишите кому-нибудь справа →</p>
+    <% } %>
+  </div>
+
+  <!-- RIGHT: all users to start chat with -->
+  <div>
+    <h2>Написать пользователю</h2>
+    <input type="text" id="userSearch" class="form-input"
+           placeholder="🔍 Поиск по имени..."
+           oninput="filterPeople()" style="margin-bottom:1rem;">
+
+    <% allUsers.forEach(u => { %>
+      <div class="card person-card" style="margin-bottom:0.65rem;"
+           data-name="<%= u.full_name.toLowerCase() %>">
+        <div style="display:flex;align-items:center;gap:0.85rem;">
+          <img src="<%= u.avatar %>" alt=""
+               style="width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+          <div style="flex:1;min-width:0;">
+            <strong><a href="/user/<%= u.id %>" style="color:inherit;text-decoration:none;"><%= u.full_name %></a></strong>
+            <p style="color:var(--text-secondary);font-size:0.8rem;margin:0;">
+              <%= u.role === 'admin' ? '👑 Администратор' : u.role === 'student' ? '🎓 Студент' : '📚 Абитуриент' %>
+              <% if (u.university_name) { %> · <%= u.university_name %><% } %>
+            </p>
+            <% if (u.bio) { %>
+              <p style="font-size:0.8rem;margin-top:0.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;"><%= u.bio %></p>
+            <% } %>
+          </div>
+          <form action="/chats/start/<%= u.id %>" method="POST" style="flex-shrink:0;">
+            <button type="submit" class="btn btn-primary" style="padding:0.3rem 0.85rem;font-size:0.85rem;">✉️ Написать</button>
+          </form>
+        </div>
+      </div>
+    <% }); %>
+    <% if (allUsers.length === 0) { %>
+      <p style="color:var(--text-secondary);">Других пользователей пока нет</p>
+    <% } %>
+  </div>
+</div>
+
+<script>
+function filterPeople() {
+  const q = document.getElementById('userSearch').value.toLowerCase();
+  document.querySelectorAll('.person-card').forEach(card => {
+    card.style.display = card.dataset.name.includes(q) ? '' : 'none';
+  });
+}
+</script>
